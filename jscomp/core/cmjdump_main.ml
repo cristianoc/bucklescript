@@ -26,15 +26,16 @@ let p = Format.fprintf
 
 let pp_cmj fmt 
     ({ values ; effect; npm_package_path; name } :Js_cmj_format.t) = 
-  p fmt "@[@name: %s@]@." name;
+  p fmt "@[name: %s@]@." name;
   p fmt "@[package info: %a@]@."  
     Js_packages_info.dump_packages_info
     npm_package_path
-    ;
+  ;
   p fmt "@[effect: %a@]@."
     (fun fmt o ->
-       match o with None -> ()
-                  | Some s -> p fmt "None pure due to %s" s 
+       match o with
+       | None -> ()
+       | Some s -> p fmt "None pure due to %s" s 
     ) effect ;
   p fmt "@[arities: @[%a@]@]@."
     (fun fmt m -> 
