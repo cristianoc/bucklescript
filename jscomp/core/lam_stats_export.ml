@@ -168,8 +168,10 @@ let export_to_cmj
       @@ fun fmt ->
       pp fmt "@[<v>%a@]@." (dump meta) meta.exports in
   let effect = get_effect meta maybe_pure external_ids in
-  {values; 
-   effect ; 
-   npm_package_path = Js_packages_state.get_packages_info ();
+  {
+    values; 
+    effect ; 
+    name = meta.filename;
+    npm_package_path = Js_packages_state.get_packages_info ();
   }
 

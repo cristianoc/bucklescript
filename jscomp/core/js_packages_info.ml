@@ -54,19 +54,19 @@ type package_info =
 type package_name  = string
 type t =
   | Empty (* No set *)
-  | NonBrowser of (package_name * package_info  list)
+  | NonBrowser of package_name * package_info  list
   (* we don't want force people to use package *) 
 
 
 let string_of_module_system (ms : module_system) = 
-  (match ms with 
+  match ms with 
    | NodeJS -> "NodeJS"
    | AmdJS -> "AmdJS"
    | Goog -> "Goog"
    | Es6 -> "Es6"
    | Es6_global -> "Es6_global"
    | AmdJS_global -> "AmdJS_globl"
-  )
+
 
 let module_system_of_string package_name : module_system option = 
   match package_name with

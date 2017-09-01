@@ -63039,7 +63039,7 @@ type package_name  = string
 
 type t =
   | Empty 
-  | NonBrowser of (package_name * package_info  list)
+  | NonBrowser of package_name * package_info  list
 
 val dump_packages_info : 
   Format.formatter -> t -> unit
@@ -63123,19 +63123,19 @@ type package_info =
 type package_name  = string
 type t =
   | Empty (* No set *)
-  | NonBrowser of (package_name * package_info  list)
+  | NonBrowser of package_name * package_info  list
   (* we don't want force people to use package *) 
 
 
 let string_of_module_system (ms : module_system) = 
-  (match ms with 
+  match ms with 
    | NodeJS -> "NodeJS"
    | AmdJS -> "AmdJS"
    | Goog -> "Goog"
    | Es6 -> "Es6"
    | Es6_global -> "Es6_global"
    | AmdJS_global -> "AmdJS_globl"
-  )
+
 
 let module_system_of_string package_name : module_system option = 
   match package_name with
@@ -70127,6 +70127,7 @@ type t = {
   values : cmj_value String_map.t;
   effect : effect;
   npm_package_path : Js_packages_info.t;
+  name : string ;
 }
 
 val single_na : arity
@@ -70192,9 +70193,10 @@ type t = {
   values : cmj_value String_map.t;
   effect : effect;
   npm_package_path : Js_packages_info.t ;
+  name : string; (* filename *)
 }
 
-let cmj_magic_number =  "BUCKLE20170811"
+let cmj_magic_number =  "BUCKLE20170831"
 let cmj_magic_number_length = 
   String.length cmj_magic_number
 
@@ -70203,6 +70205,7 @@ let pure_dummy =
     values = String_map.empty;
     effect = None;
     npm_package_path = Empty;
+    name = Ext_string.empty
   }
 
 let no_pure_dummy = 
@@ -70210,6 +70213,7 @@ let no_pure_dummy =
     values = String_map.empty;
     effect = Some Ext_string.empty;
     npm_package_path = Empty;  
+    name = Ext_string.empty
   }
 
 
@@ -101682,9 +101686,11 @@ let export_to_cmj
       @@ fun fmt ->
       pp fmt "@[<v>%a@]@." (dump meta) meta.exports in
   let effect = get_effect meta maybe_pure external_ids in
-  {values; 
-   effect ; 
-   npm_package_path = Js_packages_state.get_packages_info ();
+  {
+    values; 
+    effect ; 
+    name = meta.filename;
+    npm_package_path = Js_packages_state.get_packages_info ();
   }
 
 

@@ -25,7 +25,8 @@
 let p = Format.fprintf 
 
 let pp_cmj fmt 
-    ({ values ; effect; npm_package_path } :Js_cmj_format.t) = 
+    ({ values ; effect; npm_package_path; name } :Js_cmj_format.t) = 
+  p fmt "@[@name: %s@]@." name;
   p fmt "@[package info: %a@]@."  
     Js_packages_info.dump_packages_info
     npm_package_path
