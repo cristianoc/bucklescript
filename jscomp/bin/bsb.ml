@@ -9930,7 +9930,7 @@ type public =
   | Export_all 
   | Export_set of String_set.t 
   | Export_none
-    
+
 
 
 type build_generator = 
@@ -9953,7 +9953,7 @@ type  file_group =
 
 type t = 
   { files :  file_group list ;
-   (* flattened list of directories *)
+    (* flattened list of directories *)
     intervals :  Ext_file_pp.interval list ;
     globbed_dirs : string list ; 
 
@@ -9968,10 +9968,31 @@ type cxt = {
   dir_index : Bsb_dir_index.t ; 
   cwd : string ;
   root : string ;
-  cut_generators : bool
+  cut_generators : bool;
+  traverse : bool
 }
 
-  
+
+val parsing_simple_dir : 
+  cxt -> 
+  string -> 
+  t
+
+val parsing_source_dir_map :
+  cxt ->
+  Ext_json_types.t String_map.t -> 
+  t
+
+val parsing_source : 
+  cxt -> 
+  Ext_json_types.t ->     
+  t 
+
+val parsing_arr_sources :  
+  cxt ->
+  Ext_json_types.t array ->
+  t
+
 (** entry is to the 
     [sources] in the schema
 
@@ -9983,7 +10004,7 @@ val parse_sources :
   cxt ->
   Ext_json_types.t  ->
   t 
-  
+
 
 end = struct
 #1 "bsb_parse_sources.ml"
@@ -10066,14 +10087,15 @@ let (|?)  m (key, cb) =
 
 
 let warning_unused_file : _ format = 
-    "@{<warning>IGNORED@}: file %s under %s is ignored because it can't be turned into a valid module name. The build system transforms a file name into a module name by upper-casing the first letter@."
+  "@{<warning>IGNORED@}: file %s under %s is ignored because it can't be turned into a valid module name. The build system transforms a file name into a module name by upper-casing the first letter@."
 
 type cxt = {
   no_dev : bool ;
   dir_index : Bsb_dir_index.t ; 
   cwd : string ;
   root : string;
-  cut_generators : bool
+  cut_generators : bool;
+  traverse : bool
 }
 
 let collect_pub_modules 
@@ -10088,11 +10110,11 @@ let collect_pub_modules
       if String_map.mem str cache then 
         set := String_set.add str !set
       else 
-      begin 
-        Format.fprintf Format.err_formatter
-        "@{<warning>IGNORED@} %S in public is ignored since it is not\
-        an existing module@." str
-      end  
+        begin 
+          Format.fprintf Format.err_formatter
+            "@{<warning>IGNORED@} %S in public is ignored since it is not\
+             an existing module@." str
+        end  
     | _ -> 
       Bsb_exception.failf 
         ~loc:(Ext_json.loc_of v)
@@ -10188,31 +10210,7 @@ let rec
       }
       String_map.empty
 
-and parsing_source ({no_dev; dir_index ; cwd} as cxt ) (x : Ext_json_types.t )
-  : t  =
-  match x with 
-  | Str  { str = dir }  -> 
-    parsing_simple_dir cxt dir   
-  | Obj {map} ->
-    let current_dir_index = 
-      match String_map.find_opt Bsb_build_schemas.type_ map with 
-      | Some (Str {str="dev"}) -> Bsb_dir_index.get_dev_index ()
-      | Some _ -> Bsb_exception.failwith_config x {|type field expect "dev" literal |}
-      | None -> dir_index in 
-    if no_dev && not (Bsb_dir_index.is_lib_dir current_dir_index) then empty 
-    else 
-      let dir = 
-        match String_map.find_opt Bsb_build_schemas.dir map with 
-        | Some (Str{str}) -> 
-          Ext_filename.simple_convert_node_path_to_os_path str 
-        | Some x -> Bsb_exception.failwith_config x "dir expected to be a string"
-        | None -> 
-          Bsb_exception.failwith_config x
-            {|required field %S  missing, please checkout the schema http://bucklescript.github.io/bucklescript/docson/#build-schema.json |} 
-            Bsb_build_schemas.dir
-      in
-      parsing_source_dir_map {cxt with dir_index = current_dir_index; cwd= cwd // dir} map
-  | _ -> empty 
+
 
 (** 
    { dir : xx, files : ... } [dir] is already extracted 
@@ -10220,7 +10218,7 @@ and parsing_source ({no_dev; dir_index ; cwd} as cxt ) (x : Ext_json_types.t )
 *)
 and parsing_source_dir_map 
     ({ cwd =  dir; no_dev; cut_generators } as cxt )
-    (x : Ext_json_types.t String_map.t) : t     
+    (input : Ext_json_types.t String_map.t) : t     
   = 
   let cur_sources : Bsb_build_cache.module_info String_map.t ref = ref String_map.empty in
   let resources = ref [] in 
@@ -10228,7 +10226,7 @@ and parsing_source_dir_map
   let cur_update_queue = ref [] in 
   let cur_globbed_dirs = ref [] in 
   let generators : build_generator list ref  = ref [] in
-  begin match String_map.find_opt Bsb_build_schemas.generators x with
+  begin match String_map.find_opt Bsb_build_schemas.generators input with
     | Some (Arr { content ; loc_start}) ->
       (* Need check is dev build or not *)
       content 
@@ -10266,7 +10264,7 @@ and parsing_source_dir_map
   end
   ;
   let generators = !generators in 
-  begin match String_map.find_opt Bsb_build_schemas.files x with 
+  begin match String_map.find_opt Bsb_build_schemas.files input with 
     | None ->  (* No setting on [!files]*)
       let file_array = readdir cxt.root dir in 
       (** We should avoid temporary files *)
@@ -10335,7 +10333,7 @@ and parsing_source_dir_map
 
   end;
   let cur_sources = !cur_sources in 
-  x   
+  input   
   |?  (Bsb_build_schemas.resources ,
        `Arr (fun s  ->
            resources := Bsb_build_util.get_list_string s 
@@ -10358,13 +10356,30 @@ and parsing_source_dir_map
      generators ; 
     } in 
   let children, children_update_queue, children_globbed_dirs = 
-    match String_map.find_opt Bsb_build_schemas.subdirs x with 
-    | Some s -> 
+    match String_map.find_opt Bsb_build_schemas.subdirs input, 
+          cxt.traverse with 
+    | None , true
+    | Some (True _), _ -> 
+      let root = cxt.root in 
+      let res =
+        readdir root dir
+        |> Array.fold_left (fun origin x -> 
+          if Sys.is_directory 
+            (Filename.concat (Filename.concat root dir) x) then 
+            parsing_simple_dir cxt  x ++ origin 
+          else origin  
+          ) empty in 
+      res.files, res.intervals, res.globbed_dirs 
+    | None, false  
+    | Some (False _), _  -> [], [], []
+
+    | Some s, _  -> 
       let res  = parse_sources cxt s in 
       res.files ,
       res.intervals,
       res.globbed_dirs
-    | None -> [], [], []  in 
+
+  in 
 
   {
     files =  cur_file :: children;
@@ -10376,6 +10391,31 @@ and parsing_source_dir_map
    parsing_source dir_index cwd (String_map.singleton Bsb_build_schemas.dir dir)
 *)
 
+and parsing_source ({no_dev; dir_index ; cwd} as cxt ) (x : Ext_json_types.t )
+  : t  =
+  match x with 
+  | Str  { str = dir }  -> 
+    parsing_simple_dir cxt dir   
+  | Obj {map} ->
+    let current_dir_index = 
+      match String_map.find_opt Bsb_build_schemas.type_ map with 
+      | Some (Str {str="dev"}) -> Bsb_dir_index.get_dev_index ()
+      | Some _ -> Bsb_exception.failwith_config x {|type field expect "dev" literal |}
+      | None -> dir_index in 
+    if no_dev && not (Bsb_dir_index.is_lib_dir current_dir_index) then empty 
+    else 
+      let dir = 
+        match String_map.find_opt Bsb_build_schemas.dir map with 
+        | Some (Str{str}) -> 
+          Ext_filename.simple_convert_node_path_to_os_path str 
+        | Some x -> Bsb_exception.failwith_config x "dir expected to be a string"
+        | None -> 
+          Bsb_exception.failwith_config x
+            {|required field %S  missing, please checkout the schema http://bucklescript.github.io/bucklescript/docson/#build-schema.json |} 
+            Bsb_build_schemas.dir
+      in
+      parsing_source_dir_map {cxt with dir_index = current_dir_index; cwd= cwd // dir} map
+  | _ -> empty 
 and  parsing_arr_sources cxt (file_groups : Ext_json_types.t array)  = 
   Array.fold_left (fun  origin x ->
       parsing_source cxt x ++ origin 
@@ -11424,8 +11464,12 @@ let interpret_json
         let res = Bsb_parse_sources.parse_sources 
             {no_dev; 
              dir_index =
-               Bsb_dir_index.lib_dir_index; cwd = Filename.current_dir_name; 
-             root = cwd; cut_generators = !cut_generators}  x in 
+               Bsb_dir_index.lib_dir_index; 
+             cwd = Filename.current_dir_name; 
+             root = cwd;
+             cut_generators = !cut_generators;
+             traverse = false;
+            }  x in 
         if generate_watch_metadata then
           Bsb_watcher_gen.generate_sourcedirs_meta cwd res ;     
         begin match List.sort Ext_file_pp.interval_compare  res.intervals with
@@ -11452,7 +11496,7 @@ let interpret_json
             failwith "_ is a reserved package name"
           | Some name -> 
             name
-          
+
         in 
         let namespace =     
           if !namespace then 
