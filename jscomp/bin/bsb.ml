@@ -10356,17 +10356,19 @@ and parsing_source_dir_map
      generators ; 
     } in 
   let children, children_update_queue, children_globbed_dirs = 
+    let cxt_traverse = cxt.traverse in 
     match String_map.find_opt Bsb_build_schemas.subdirs input, 
-          cxt.traverse with 
+          cxt_traverse with 
     | None , true
     | Some (True _), _ -> 
       let root = cxt.root in 
       let res =
-        readdir root dir
+        readdir root dir (* avoiding scanning twice *)
         |> Array.fold_left (fun origin x -> 
           if Sys.is_directory 
             (Filename.concat (Filename.concat root dir) x) then 
-            parsing_simple_dir cxt  x ++ origin 
+            parsing_simple_dir 
+            (if cxt_traverse then cxt else {cxt with traverse = true})  x ++ origin 
           else origin  
           ) empty in 
       res.files, res.intervals, res.globbed_dirs 
