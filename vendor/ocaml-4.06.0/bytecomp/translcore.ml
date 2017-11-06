@@ -889,7 +889,7 @@ and transl_exp0 e =
         | Record_inlined _ ->
           Psetfield(lbl.lbl_pos, maybe_pointer newval, Assignment, Fld_record_set lbl.lbl_name)
         | Record_unboxed _ -> assert false
-        | Record_float -> Psetfloatfield (lbl.lbl_pos, Assignment)
+        | Record_float -> Psetfloatfield (lbl.lbl_pos, Assignment, Fld_record_set lbl.lbl_name)
         | Record_extension ->
           Psetfield (lbl.lbl_pos + 1, maybe_pointer newval, Assignment, Fld_record_set lbl.lbl_name)
       in
@@ -1330,7 +1330,7 @@ and transl_record loc env fields repres opt_init_expr =
             | Record_inlined _ ->
                 Psetfield(lbl.lbl_pos, maybe_pointer expr, Assignment, Fld_record_set lbl.lbl_name)
             | Record_unboxed _ -> assert false
-            | Record_float -> Psetfloatfield (lbl.lbl_pos, Assignment)
+            | Record_float -> Psetfloatfield (lbl.lbl_pos, Assignment, Fld_record_set lbl.lbl_name)
             | Record_extension ->
                 Psetfield(lbl.lbl_pos + 1, maybe_pointer expr, Assignment, Fld_record_set lbl.lbl_name)
           in

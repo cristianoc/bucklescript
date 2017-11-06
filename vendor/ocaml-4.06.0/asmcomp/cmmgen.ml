@@ -2112,7 +2112,7 @@ and transl_prim_2 env p arg1 arg2 dbg =
       | Simple ->
         return_unit(set_field (transl env arg1) n (transl env arg2) init dbg)
       end
-  | Psetfloatfield (n, init) ->
+  | Psetfloatfield (n, init, _) ->
       let ptr = transl env arg1 in
       return_unit(
         Cop(Cstore (Double_u, init),
