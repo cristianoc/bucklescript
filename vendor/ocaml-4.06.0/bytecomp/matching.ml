@@ -2923,7 +2923,7 @@ let partial_function loc () =
   let (fname, line, char) = Location.get_pos_info loc.Location.loc_start in
   Lprim(Praise Raise_regular, [Lprim(Pmakeblock(0, Lambda.default_tag_info, Immutable, None),
           [transl_normal_path Predef.path_match_failure;
-           Lconst(Const_block(0,
+           Lconst(Const_block(0, Lambda.default_tag_info,
               [Const_base(Const_string (fname, None));
                Const_base(Const_int line);
                Const_base(Const_int char)]))], loc)], loc)
@@ -3022,7 +3022,7 @@ let assign_pat opt nraise catch_ids loc pat lam =
   | Tpat_tuple patl, Lprim(Pmakeblock _, lams, _) ->
       opt := true;
       List.fold_left2 collect acc patl lams
-  | Tpat_tuple patl, Lconst(Const_block(_, scl)) ->
+  | Tpat_tuple patl, Lconst(Const_block(_, _, scl)) ->
       opt := true;
       let collect_const acc pat sc = collect acc pat (Lconst sc) in
       List.fold_left2 collect_const acc patl scl

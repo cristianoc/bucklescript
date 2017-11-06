@@ -227,7 +227,7 @@ val default_pointer_info : pointer_info
 type structured_constant =
     Const_base of constant
   | Const_pointer of int * pointer_info
-  | Const_block of int * structured_constant list
+  | Const_block of int * tag_info * structured_constant list
   | Const_float_array of string list
   | Const_immstring of string
 

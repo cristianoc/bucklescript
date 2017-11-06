@@ -63,7 +63,7 @@ let transl_label l = share (Const_immstring l)
 let transl_meth_list lst =
   if lst = [] then Lconst (Const_pointer (0, Lambda.Pt_na)) else
   share (Const_block
-            (0, List.map (fun lab -> Const_immstring lab) lst))
+            (0, Blk_na, List.map (fun lab -> Const_immstring lab) lst))
 
 let set_inst_var obj id expr =
   Lprim(Psetfield_computed (Typeopt.maybe_pointer expr, Assignment, Fld_set_na),

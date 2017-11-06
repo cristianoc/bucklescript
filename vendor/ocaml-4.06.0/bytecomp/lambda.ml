@@ -219,7 +219,7 @@ let default_pointer_info = Pt_na
 type structured_constant =
     Const_base of constant
   | Const_pointer of int * pointer_info
-  | Const_block of int * structured_constant list
+  | Const_block of int * tag_info * structured_constant list
   | Const_float_array of string list
   | Const_immstring of string
 
@@ -726,7 +726,7 @@ let lam_of_loc kind loc =
       loc_start.Lexing.pos_cnum + cnum in
   match kind with
   | Loc_POS ->
-    Lconst (Const_block (0, [
+    Lconst (Const_block (0, Blk_tuple, [
           Const_immstring file;
           Const_base (Const_int lnum);
           Const_base (Const_int cnum);

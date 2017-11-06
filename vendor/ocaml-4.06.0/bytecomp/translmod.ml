@@ -195,7 +195,7 @@ let mod_prim name =
 
 let undefined_location loc =
   let (fname, line, char) = Location.get_pos_info loc.Location.loc_start in
-  Lconst(Const_block(0,
+  Lconst(Const_block(0, Lambda.default_tag_info,
                      [Const_base(Const_string (fname, None));
                       Const_base(Const_int line);
                       Const_base(Const_int char)]))
@@ -206,9 +206,9 @@ let init_shape modl =
       Mty_ident _ ->
         raise Not_found
     | Mty_alias _ ->
-        Const_block (1, [Const_pointer (0, Lambda.Pt_module_alias)])
+        Const_block (1, Lambda.default_tag_info, [Const_pointer (0, Lambda.Pt_module_alias)])
     | Mty_signature sg ->
-        Const_block(0, [Const_block(0, init_shape_struct env sg)])
+        Const_block(0, Lambda.default_tag_info, [Const_block(0, Lambda.default_tag_info, init_shape_struct env sg)])
     | Mty_functor _ ->
         raise Not_found (* can we do better? *)
   and init_shape_struct env sg =

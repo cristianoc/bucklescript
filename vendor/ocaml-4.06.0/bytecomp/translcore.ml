@@ -642,7 +642,7 @@ let assert_failed exp =
   Lprim(Praise Raise_regular, [event_after exp
     (Lprim(Pmakeblock(0, Lambda.default_tag_info, Immutable, None),
           [transl_normal_path Predef.path_assert_failure;
-           Lconst(Const_block(0,
+           Lconst(Const_block(0, Lambda.default_tag_info,
               [Const_base(Const_string (fname, None));
                Const_base(Const_int line);
                Const_base(Const_int char)]))], exp.exp_loc))], exp.exp_loc)
@@ -825,7 +825,7 @@ and transl_exp0 e =
   | Texp_tuple el ->
       let ll, shape = transl_list_with_shape el in
       begin try
-        Lconst(Const_block(0, List.map extract_constant ll))
+        Lconst(Const_block(0, Lambda.Blk_tuple, List.map extract_constant ll))
       with Not_constant ->
         Lprim(Pmakeblock(0, Lambda.Blk_tuple, Immutable, Some shape), ll, e.exp_loc)
       end
@@ -842,7 +842,7 @@ and transl_exp0 e =
       | Cstr_block n ->
           let tag_info = (Lambda.Blk_constructor (cstr.cstr_name, cstr.cstr_nonconsts)) in
           begin try
-            Lconst(Const_block(n, List.map extract_constant ll))
+            Lconst(Const_block(n, tag_info, List.map extract_constant ll))
           with Not_constant ->
             Lprim(Pmakeblock(n, tag_info, Immutable, Some shape), ll, e.exp_loc)
           end
@@ -863,7 +863,7 @@ and transl_exp0 e =
           let lam = transl_exp arg in
           let tag_info = Lambda.Blk_variant l in
           try
-            Lconst(Const_block(0, [Const_base(Const_int tag);
+            Lconst(Const_block(0, tag_info, [Const_base(Const_int tag);
                                    extract_constant lam]))
           with Not_constant ->
             Lprim(Pmakeblock(0, tag_info, Immutable, None),
@@ -928,7 +928,7 @@ and transl_exp0 e =
             let imm_array =
               match kind with
               | Paddrarray | Pintarray ->
-                  Lconst(Const_block(0, cl))
+                  Lconst(Const_block(0, Lambda.Blk_array, cl))
               | Pfloatarray ->
                   Lconst(Const_float_array(List.map extract_float cl))
               | Pgenarray ->
@@ -1285,8 +1285,8 @@ and transl_record loc env fields repres opt_init_expr =
         if mut = Mutable then raise Not_constant;
         let cl = List.map extract_constant ll in
         match repres with
-        | Record_regular -> Lconst(Const_block(0, cl))
-        | Record_inlined tag -> Lconst(Const_block(tag, cl))
+        | Record_regular -> Lconst(Const_block(0, Lambda.Blk_record fields_info, cl))
+        | Record_inlined tag -> Lconst(Const_block(tag, Lambda.Blk_record fields_info, cl))
         | Record_unboxed _ -> Lconst(match cl with [v] -> v | _ -> assert false)
         | Record_float ->
             Lconst(Const_float_array(List.map extract_float cl))

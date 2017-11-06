@@ -1675,13 +1675,15 @@ middle_end/lift_constants.cmi : middle_end/flambda.cmi \
     middle_end/backend_intf.cmi
 middle_end/lift_let_to_initialize_symbol.cmo : \
     middle_end/base_types/variable.cmi middle_end/base_types/tag.cmi \
-    middle_end/base_types/symbol.cmi middle_end/flambda_utils.cmi \
-    middle_end/flambda.cmi middle_end/debuginfo.cmi parsing/asttypes.cmi \
+    middle_end/base_types/symbol.cmi bytecomp/lambda.cmi \
+    middle_end/flambda_utils.cmi middle_end/flambda.cmi \
+    middle_end/debuginfo.cmi parsing/asttypes.cmi \
     middle_end/lift_let_to_initialize_symbol.cmi
 middle_end/lift_let_to_initialize_symbol.cmx : \
     middle_end/base_types/variable.cmx middle_end/base_types/tag.cmx \
-    middle_end/base_types/symbol.cmx middle_end/flambda_utils.cmx \
-    middle_end/flambda.cmx middle_end/debuginfo.cmx parsing/asttypes.cmi \
+    middle_end/base_types/symbol.cmx bytecomp/lambda.cmx \
+    middle_end/flambda_utils.cmx middle_end/flambda.cmx \
+    middle_end/debuginfo.cmx parsing/asttypes.cmi \
     middle_end/lift_let_to_initialize_symbol.cmi
 middle_end/lift_let_to_initialize_symbol.cmi : middle_end/flambda.cmi \
     middle_end/backend_intf.cmi
