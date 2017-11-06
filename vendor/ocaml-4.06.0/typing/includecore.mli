@@ -37,7 +37,7 @@ type type_mismatch =
   | Immediate
 
 val value_descriptions:
-  loc:Location.t -> Env.t -> string ->
+  Ident.t -> loc:Location.t -> Env.t -> string ->
   value_description -> value_description -> module_coercion
 
 val type_declarations:

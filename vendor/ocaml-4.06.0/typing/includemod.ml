@@ -58,7 +58,7 @@ let value_descriptions ~loc env cxt subst id vd1 vd2 =
   Env.mark_value_used env (Ident.name id) vd1;
   let vd2 = Subst.value_description subst vd2 in
   try
-    Includecore.value_descriptions ~loc env (Ident.name id) vd1 vd2
+    Includecore.value_descriptions id ~loc env (Ident.name id) vd1 vd2
   with Includecore.Dont_match ->
     raise(Error[cxt, env, Value_descriptions(id, vd1, vd2)])
 

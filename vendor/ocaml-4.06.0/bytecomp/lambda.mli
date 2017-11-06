@@ -34,6 +34,19 @@ type loc_kind =
   | Loc_LOC
   | Loc_POS
 
+type tag_info = 
+  | Blk_constructor of string * int (* Number of non-const constructors*)
+  | Blk_tuple
+  | Blk_array
+  | Blk_variant of string 
+  | Blk_record of string array
+  | Blk_module of string list option
+  | Blk_exception
+  | Blk_extension
+  | Blk_na
+
+val default_tag_info : tag_info
+
 type immediate_or_pointer =
   | Immediate
   | Pointer
@@ -64,7 +77,7 @@ type primitive =
   | Pgetglobal of Ident.t
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
-  | Pmakeblock of int * mutable_flag * block_shape
+  | Pmakeblock of int * tag_info * mutable_flag * block_shape
   | Pfield of int
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment

@@ -431,7 +431,7 @@ let field_approx n = function
 let simplif_prim_pure fpc p (args, approxs) dbg =
   match p, args, approxs with
   (* Block construction *)
-  | Pmakeblock(tag, Immutable, _kind), _, _ ->
+  | Pmakeblock(tag, _, Immutable, _kind), _, _ ->
       let field = function
         | Value_const c -> c
         | _ -> raise Exit
@@ -492,7 +492,7 @@ let simplif_prim fpc p (args, approxs as args_approxs) dbg =
     (* XXX : always return the same approxs as simplif_prim_pure? *)
     let approx =
       match p with
-      | Pmakeblock(_, Immutable, _kind) ->
+      | Pmakeblock(_, _, Immutable, _kind) ->
           Value_tuple (Array.of_list approxs)
       | _ ->
           Value_unknown
@@ -670,8 +670,8 @@ let rec bind_params_rec loc fpc subst params args body =
         let p1' = Ident.rename p1 in
         let u1, u2 =
           match Ident.name p1, a1 with
-          | "*opt*", Uprim(Pmakeblock(0, Immutable, kind), [a], dbg) ->
-              a, Uprim(Pmakeblock(0, Immutable, kind), [Uvar p1'], dbg)
+          | "*opt*", Uprim(Pmakeblock(0, tag_info, Immutable, kind), [a], dbg) ->
+              a, Uprim(Pmakeblock(0, tag_info, Immutable, kind), [Uvar p1'], dbg)
           | _ ->
               a1, Uvar p1'
         in
