@@ -135,7 +135,7 @@ let rec declare_const t (const : Lambda.structured_constant)
     register_const t (Allocated_const (Int64 c)) "int64"
   | Const_base (Const_nativeint c) ->
     register_const t (Allocated_const (Nativeint c)) "nativeint"
-  | Const_pointer c -> Const (Const_pointer c), "pointer"
+  | Const_pointer (c, _) -> Const (Const_pointer c), "pointer"
   | Const_immstring c ->
     register_const t (Allocated_const (Immutable_string c)) "immstring"
   | Const_float_array c ->

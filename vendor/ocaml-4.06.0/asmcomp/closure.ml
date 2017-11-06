@@ -801,7 +801,7 @@ let rec close fenv cenv = function
       let rec transl = function
         | Const_base(Const_int n) -> Uconst_int n
         | Const_base(Const_char c) -> Uconst_int (Char.code c)
-        | Const_pointer n -> Uconst_ptr n
+        | Const_pointer (n, _) -> Uconst_ptr n
         | Const_block (tag, fields) ->
             str (Uconst_block (tag, List.map transl fields))
         | Const_float_array sl ->
