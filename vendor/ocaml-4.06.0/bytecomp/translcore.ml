@@ -673,7 +673,7 @@ and transl_exp0 e =
     Texp_ident(path, _, {val_kind = Val_prim p}) ->
       let public_send = p.prim_name = "%send" in
       if public_send || p.prim_name = "%sendself" then
-        let kind = if public_send then Public else Self in
+        let kind = if public_send then Public None else Self in
         let obj = Ident.create "obj" and meth = Ident.create "meth" in
         Lfunction{kind = Curried; params = [obj; meth];
                   attr = default_stub_attribute;
@@ -745,7 +745,7 @@ and transl_exp0 e =
       let public_send = p.prim_name = "%send"
         || not !Clflags.native_code && p.prim_name = "%sendcache"in
       if public_send || p.prim_name = "%sendself" then
-        let kind = if public_send then Public else Self in
+        let kind = if public_send then Public None else Self in
         let obj = List.hd argl in
         wrap (Lsend (kind, List.nth argl 1, obj, [], e.exp_loc))
       else if p.prim_name = "%sendcache" then
@@ -962,7 +962,7 @@ and transl_exp0 e =
           Tmeth_val id -> Lsend (Self, Lvar id, obj, [], e.exp_loc)
         | Tmeth_name nm ->
             let (tag, cache) = Translobj.meth obj nm in
-            let kind = if cache = [] then Public else Cached in
+            let kind = if cache = [] then Public (Some nm) else Cached in
             Lsend (kind, tag, obj, cache, e.exp_loc)
       in
       event_after e lam

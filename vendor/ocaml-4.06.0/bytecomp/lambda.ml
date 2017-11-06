@@ -229,7 +229,9 @@ type function_kind = Curried | Tupled
 
 type let_kind = Strict | Alias | StrictOpt | Variable
 
-type meth_kind = Self | Public | Cached
+type public_info = string option  (* label name *)
+
+type meth_kind = Self | Public of public_info | Cached
 
 type shared_code = (int * int) list
 
