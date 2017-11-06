@@ -56,6 +56,14 @@ type set_field_dbg_info =
   | Fld_set_na
   | Fld_record_set of string 
 
+type pointer_info = 
+  | Pt_constructor of string
+  | Pt_variant of string 
+  | Pt_module_alias
+  | Pt_na 
+
+val default_pointer_info : pointer_info
+
 type immediate_or_pointer =
   | Immediate
   | Pointer
@@ -215,14 +223,6 @@ and raise_kind =
   | Raise_regular
   | Raise_reraise
   | Raise_notrace
-
-type pointer_info = 
-  | Pt_constructor of string
-  | Pt_variant of string 
-  | Pt_module_alias
-  | Pt_na
-
-val default_pointer_info : pointer_info
 
 type structured_constant =
     Const_base of constant
