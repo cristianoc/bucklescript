@@ -878,7 +878,7 @@ and transl_exp0 e =
           Record_regular | Record_inlined _ ->
           Lprim (Pfield (lbl.lbl_pos, Fld_record lbl.lbl_name), [targ], e.exp_loc)
         | Record_unboxed _ -> targ
-        | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [targ], e.exp_loc)
+        | Record_float -> Lprim (Pfloatfield (lbl.lbl_pos, Fld_record lbl.lbl_name), [targ], e.exp_loc)
         | Record_extension ->
           Lprim (Pfield (lbl.lbl_pos + 1, Fld_record lbl.lbl_name), [targ], e.exp_loc)
       end
@@ -1267,7 +1267,7 @@ and transl_record loc env fields repres opt_init_expr =
                    Record_regular | Record_inlined _ -> Pfield (i, Fld_record lbl.lbl_name)
                  | Record_unboxed _ -> assert false
                  | Record_extension -> Pfield (i + 1, Fld_record lbl.lbl_name)
-                 | Record_float -> Pfloatfield i in
+                 | Record_float -> Pfloatfield (i, Fld_record lbl.lbl_name) in
                Lprim(access, [Lvar init_id], loc), field_kind
            | Overridden (_lid, expr) ->
                let field_kind = value_kind expr.exp_env expr.exp_type in

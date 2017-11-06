@@ -1643,7 +1643,7 @@ let make_record_matching loc all_labels def = function
             | Record_regular | Record_inlined _ ->
               Lprim (Pfield (lbl.lbl_pos, Fld_record lbl.lbl_name), [arg], loc)
             | Record_unboxed _ -> arg
-            | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [arg], loc)
+            | Record_float -> Lprim (Pfloatfield (lbl.lbl_pos, Fld_record lbl.lbl_name), [arg], loc)
             | Record_extension -> Lprim (Pfield (lbl.lbl_pos + 1, Fld_record lbl.lbl_name), [arg], loc)
           in
           let str =
