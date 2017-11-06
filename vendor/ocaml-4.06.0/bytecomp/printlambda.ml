@@ -144,7 +144,7 @@ let primitive ppf = function
       fprintf ppf "makemutable %i%a" tag block_shape shape
   | Pfield (n, _) -> fprintf ppf "field %i" n
   | Pfield_computed -> fprintf ppf "field_computed"
-  | Psetfield(n, ptr, init) ->
+  | Psetfield(n, ptr, init, _) ->
       let instr =
         match ptr with
         | Pointer -> "ptr"
@@ -157,7 +157,7 @@ let primitive ppf = function
         | Assignment -> ""
       in
       fprintf ppf "setfield_%s%s %i" instr init n
-  | Psetfield_computed (ptr, init) ->
+  | Psetfield_computed (ptr, init, _) ->
       let instr =
         match ptr with
         | Pointer -> "ptr"

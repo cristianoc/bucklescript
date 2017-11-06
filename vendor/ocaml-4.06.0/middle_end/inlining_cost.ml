@@ -25,7 +25,7 @@ let prim_size (prim : Lambda.primitive) args =
   | Psetglobal _ -> 1
   | Pmakeblock _ -> 5 + List.length args
   | Pfield _ -> 1
-  | Psetfield (_, isptr, init) ->
+  | Psetfield (_, isptr, init, _) ->
     begin match init with
     | Root_initialization -> 1  (* never causes a write barrier hit *)
     | Assignment | Heap_initialization ->

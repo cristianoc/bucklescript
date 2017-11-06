@@ -395,8 +395,8 @@ and to_clambda_named t env var (named : Flambda.named) : Clambda.ulambda =
       Debuginfo.none)
   | Prim ((Pfield (index, _) as field), [block], dbg) ->
     Uprim (field, [check_field (subst_var env block) index None], dbg)
-  | Prim (Psetfield (index, maybe_ptr, init), [block; new_value], dbg) ->
-    Uprim (Psetfield (index, maybe_ptr, init), [
+  | Prim (Psetfield (index, maybe_ptr, init, dbg_info), [block; new_value], dbg) ->
+    Uprim (Psetfield (index, maybe_ptr, init, dbg_info), [
         check_field (subst_var env block) index None;
         subst_var env new_value;
       ], dbg)
@@ -574,7 +574,7 @@ let to_clambda_initialize_symbol t env symbol fields : Clambda.ulambda =
   let build_setfield (index, field) : Clambda.ulambda =
     (* Note that this will never cause a write barrier hit, owing to
        the [Initialization]. *)
-    Uprim (Psetfield (index, Pointer, Root_initialization),
+    Uprim (Psetfield (index, Pointer, Root_initialization, Fld_set_na),
       [to_clambda_symbol env symbol; field],
       Debuginfo.none)
   in

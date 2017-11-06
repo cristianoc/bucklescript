@@ -184,7 +184,7 @@ let eliminate_ref_of_expr flam =
            end
            else
              Expr Proved_unreachable)
-      | Prim(Psetfield (field, _, _), [v; new_value], _)
+      | Prim(Psetfield (field, _, _, _), [v; new_value], _)
         when convertible_variable v ->
         (match get_variable v field with
          | None -> Expr Proved_unreachable

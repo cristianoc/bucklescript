@@ -2097,7 +2097,7 @@ and transl_prim_2 env p arg1 arg2 dbg =
   (* Heap operations *)
   | Pfield_computed ->
       addr_array_ref (transl env arg1) (transl env arg2) dbg
-  | Psetfield(n, ptr, init) ->
+  | Psetfield(n, ptr, init, _) ->
       begin match assignment_kind ptr init with
       | Caml_modify ->
         return_unit(Cop(Cextcall("caml_modify", typ_void, false, None),
@@ -2402,7 +2402,7 @@ and transl_prim_2 env p arg1 arg2 dbg =
 and transl_prim_3 env p arg1 arg2 arg3 dbg =
   match p with
   (* Heap operations *)
-  | Psetfield_computed(ptr, init) ->
+  | Psetfield_computed(ptr, init, _) ->
       begin match assignment_kind ptr init with
       | Caml_modify ->
         return_unit (

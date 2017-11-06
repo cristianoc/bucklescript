@@ -66,7 +66,7 @@ let transl_meth_list lst =
             (0, List.map (fun lab -> Const_immstring lab) lst))
 
 let set_inst_var obj id expr =
-  Lprim(Psetfield_computed (Typeopt.maybe_pointer expr, Assignment),
+  Lprim(Psetfield_computed (Typeopt.maybe_pointer expr, Assignment, Fld_set_na),
     [Lvar obj; Lvar id; transl_exp expr], Location.none)
 
 let transl_val tbl create name =
@@ -692,7 +692,7 @@ let transl_class ids cl_id pub_meths cl vflag =
   let env1 = Ident.create "env" and env1' = Ident.create "env'" in
   let copy_env self =
     if top then lambda_unit else
-    Lifused(env2, Lprim(Psetfield_computed (Pointer, Assignment),
+    Lifused(env2, Lprim(Psetfield_computed (Pointer, Assignment, Fld_set_na),
                         [Lvar self; Lvar env2; Lvar env1'],
                         Location.none))
   and subst_env envs l lam =
@@ -830,7 +830,7 @@ let transl_class ids cl_id pub_meths cl vflag =
                                     inh_keys, Location.none)]),
          lam)
   and lset cached i lam =
-    Lprim(Psetfield(i, Pointer, Assignment),
+    Lprim(Psetfield(i, Pointer, Assignment, Fld_set_na),
           [Lvar cached; lam], Location.none)
   in
   let ldirect () =

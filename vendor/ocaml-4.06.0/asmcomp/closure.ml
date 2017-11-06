@@ -108,7 +108,7 @@ let prim_size prim args =
   | Psetglobal _ -> 1
   | Pmakeblock _ -> 5 + List.length args
   | Pfield _ -> 1
-  | Psetfield(_f, isptr, init) ->
+  | Psetfield(_f, isptr, init, _) ->
     begin match init with
     | Root_initialization -> 1  (* never causes a write barrier hit *)
     | Assignment | Heap_initialization ->
@@ -979,12 +979,12 @@ let rec close fenv cenv = function
       let dbg = Debuginfo.from_location loc in
       check_constant_result lam (Uprim(field, [ulam], dbg))
                             (field_approx n approx)
-  | Lprim(Psetfield(n, is_ptr, init), [Lprim(Pgetglobal id, [], _); lam], loc)->
+  | Lprim(Psetfield(n, is_ptr, init, dbg_info), [Lprim(Pgetglobal id, [], _); lam], loc)->
       let (ulam, approx) = close fenv cenv lam in
       if approx <> Value_unknown then
         (!global_approx).(n) <- approx;
       let dbg = Debuginfo.from_location loc in
-      (Uprim(Psetfield(n, is_ptr, init), [getglobal dbg id; ulam], dbg),
+      (Uprim(Psetfield(n, is_ptr, init, dbg_info), [getglobal dbg id; ulam], dbg),
        Value_unknown)
   | Lprim(Praise k, [arg], loc) ->
       let (ulam, _approx) = close fenv cenv arg in

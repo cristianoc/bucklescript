@@ -52,6 +52,10 @@ type field_dbg_info =
   | Fld_record of string
   | Fld_module of string 
 
+type set_field_dbg_info = 
+  | Fld_set_na
+  | Fld_record_set of string 
+
 type immediate_or_pointer =
   | Immediate
   | Pointer
@@ -85,8 +89,8 @@ type primitive =
   | Pmakeblock of int * tag_info * mutable_flag * block_shape
   | Pfield of int * field_dbg_info
   | Pfield_computed
-  | Psetfield of int * immediate_or_pointer * initialization_or_assignment
-  | Psetfield_computed of immediate_or_pointer * initialization_or_assignment
+  | Psetfield of int * immediate_or_pointer * initialization_or_assignment * set_field_dbg_info
+  | Psetfield_computed of immediate_or_pointer * initialization_or_assignment * set_field_dbg_info
   | Pfloatfield of int * field_dbg_info
   | Psetfloatfield of int * initialization_or_assignment
   | Pduprecord of Types.record_representation * int
