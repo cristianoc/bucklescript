@@ -47,6 +47,11 @@ type tag_info =
 
 val default_tag_info : tag_info
 
+type field_dbg_info = 
+  | Fld_na
+  | Fld_record of string
+  | Fld_module of string 
+
 type immediate_or_pointer =
   | Immediate
   | Pointer
@@ -78,7 +83,7 @@ type primitive =
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
   | Pmakeblock of int * tag_info * mutable_flag * block_shape
-  | Pfield of int
+  | Pfield of int * field_dbg_info
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment
   | Psetfield_computed of immediate_or_pointer * initialization_or_assignment

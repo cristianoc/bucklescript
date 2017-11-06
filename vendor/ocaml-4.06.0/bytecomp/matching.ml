@@ -1291,7 +1291,7 @@ let make_field_args loc binding_kind arg first_pos last_pos argl =
   let rec make_args pos =
     if pos > last_pos
     then argl
-    else (Lprim(Pfield pos, [arg], loc), binding_kind) :: make_args (pos + 1)
+    else (Lprim(Pfield (pos, Fld_na (* TODO *)), [arg], loc), binding_kind) :: make_args (pos + 1)
   in make_args first_pos
 
 let get_key_constr = function
@@ -1409,7 +1409,7 @@ let make_variant_matching_nonconst p lab def ctx = function
       let def = make_default (matcher_variant_nonconst lab) def
       and ctx = filter_ctx p ctx in
       {pm=
-        {cases = []; args = (Lprim(Pfield 1, [arg], p.pat_loc), Alias) :: argl;
+        {cases = []; args = (Lprim(Pfield (1, Fld_na (* TODO *)), [arg], p.pat_loc), Alias) :: argl;
           default=def} ;
         ctx=ctx ;
         pat = normalize_pat p}
@@ -1488,7 +1488,7 @@ let get_mod_field modname field =
       with Not_found ->
         fatal_error ("Primitive "^modname^"."^field^" not found.")
       in
-      Lprim(Pfield p,
+      Lprim(Pfield (p, Fld_na (* TODO *)),
             [Lprim(Pgetglobal mod_ident, [], Location.none)],
             Location.none)
     with Not_found -> fatal_error ("Module "^modname^" unavailable.")
@@ -1520,7 +1520,7 @@ let inline_lazy_force_cond arg loc =
               Lprim(Pintcomp Ceq,
                     [Lvar tag; Lconst(Const_base(Const_int Obj.forward_tag))],
                     loc),
-              Lprim(Pfield 0, [varg], loc),
+              Lprim(Pfield (0, Fld_na (* TODO: lazy *)), [varg], loc),
               Lifthenelse(
                 (* ... if (tag == Obj.lazy_tag) then Lazy.force varg else ... *)
                 Lprim(Pintcomp Ceq,
@@ -1547,7 +1547,7 @@ let inline_lazy_force_switch arg loc =
              { sw_numconsts = 0; sw_consts = [];
                sw_numblocks = 256;  (* PR#6033 - tag ranges from 0 to 255 *)
                sw_blocks =
-                 [ (Obj.forward_tag, Lprim(Pfield 0, [varg], loc));
+                 [ (Obj.forward_tag, Lprim(Pfield (0, Fld_na (* TODO: lazy *)), [varg], loc));
                    (Obj.lazy_tag,
                     Lapply{ap_should_be_tailcall=false;
                            ap_loc=loc;
@@ -1601,7 +1601,7 @@ let make_tuple_matching loc arity def = function
       let rec make_args pos =
         if pos >= arity
         then argl
-        else (Lprim(Pfield pos, [arg], loc), Alias) :: make_args (pos + 1) in
+        else (Lprim(Pfield (pos, Fld_na (* TODO: tuple *)), [arg], loc), Alias) :: make_args (pos + 1) in
       {cases = []; args = make_args 0 ;
         default=make_default (matcher_tuple arity) def}
 
@@ -1641,10 +1641,10 @@ let make_record_matching loc all_labels def = function
           let access =
             match lbl.lbl_repres with
             | Record_regular | Record_inlined _ ->
-              Lprim (Pfield lbl.lbl_pos, [arg], loc)
+              Lprim (Pfield (lbl.lbl_pos, Fld_record lbl.lbl_name), [arg], loc)
             | Record_unboxed _ -> arg
             | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [arg], loc)
-            | Record_extension -> Lprim (Pfield (lbl.lbl_pos + 1), [arg], loc)
+            | Record_extension -> Lprim (Pfield (lbl.lbl_pos + 1, Fld_record lbl.lbl_name), [arg], loc)
           in
           let str =
             match lbl.lbl_mut with
@@ -2342,7 +2342,7 @@ let combine_constructor loc arg ex_pat cstr partial ctx def
                 nonconsts
                 default
             in
-              Llet(Alias, Pgenval,tag, Lprim(Pfield 0, [arg], loc), tests)
+              Llet(Alias, Pgenval,tag, Lprim(Pfield (0, Fld_na), [arg], loc), tests)
       in
         List.fold_right
           (fun (path, act) rem ->
@@ -2419,7 +2419,7 @@ let call_switcher_variant_constant loc fail arg int_lambda_list =
 
 let call_switcher_variant_constr loc fail arg int_lambda_list =
   let v = Ident.create "variant" in
-  Llet(Alias, Pgenval, v, Lprim(Pfield 0, [arg], loc),
+  Llet(Alias, Pgenval, v, Lprim(Pfield (0, Fld_na), [arg], loc),
        call_switcher loc
          fail (Lvar v) min_int max_int int_lambda_list)
 

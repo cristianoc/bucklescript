@@ -325,7 +325,7 @@ let comp_primitive p args =
   | Psetglobal id -> Ksetglobal id
   | Pintcomp cmp -> Kintcomp cmp
   | Pmakeblock(tag, _, _mut, _) -> Kmakeblock(List.length args, tag)
-  | Pfield n -> Kgetfield n
+  | Pfield (n, _) -> Kgetfield n
   | Pfield_computed -> Kgetvectitem
   | Psetfield(n, _ptr, _init) -> Ksetfield n
   | Psetfield_computed(_ptr, _init) -> Ksetvectitem

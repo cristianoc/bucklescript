@@ -47,6 +47,11 @@ type tag_info =
 
 let default_tag_info : tag_info = Blk_na
 
+type field_dbg_info = 
+  | Fld_na
+  | Fld_record of string
+  | Fld_module of string 
+
 type immediate_or_pointer =
   | Immediate
   | Pointer
@@ -73,7 +78,7 @@ type primitive =
   | Psetglobal of Ident.t
   (* Operations on heap blocks *)
   | Pmakeblock of int * tag_info * mutable_flag * block_shape
-  | Pfield of int
+  | Pfield of int * field_dbg_info
   | Pfield_computed
   | Psetfield of int * immediate_or_pointer * initialization_or_assignment
   | Psetfield_computed of immediate_or_pointer * initialization_or_assignment
@@ -550,8 +555,8 @@ let rec transl_normal_path = function
       if Ident.global id
       then Lprim(Pgetglobal id, [], Location.none)
       else Lvar id
-  | Pdot(p, _s, pos) ->
-      Lprim(Pfield pos, [transl_normal_path p], Location.none)
+  | Pdot(p, s, pos) ->
+      Lprim(Pfield (pos, Fld_module s), [transl_normal_path p], Location.none)
   | Papply _ ->
       fatal_error "Lambda.transl_path"
 

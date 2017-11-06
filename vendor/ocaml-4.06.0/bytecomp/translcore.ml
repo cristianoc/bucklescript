@@ -175,8 +175,8 @@ let primitives_table = create_hashtable 57 [
   "%loc_LINE", Ploc Loc_LINE;
   "%loc_POS", Ploc Loc_POS;
   "%loc_MODULE", Ploc Loc_MODULE;
-  "%field0", Pfield 0;
-  "%field1", Pfield 1;
+  "%field0", Pfield (0, Fld_na);
+  "%field1", Pfield (1, Fld_na);
   "%setfield0", Psetfield(0, Pointer, Assignment);
   "%makeblock", Pmakeblock(0, Lambda.default_tag_info, Immutable, None);
   "%makemutable", Pmakeblock(0, Lambda.default_tag_info, Mutable, None);
@@ -876,11 +876,11 @@ and transl_exp0 e =
       let targ = transl_exp arg in
       begin match lbl.lbl_repres with
           Record_regular | Record_inlined _ ->
-          Lprim (Pfield lbl.lbl_pos, [targ], e.exp_loc)
+          Lprim (Pfield (lbl.lbl_pos, Fld_record lbl.lbl_name), [targ], e.exp_loc)
         | Record_unboxed _ -> targ
         | Record_float -> Lprim (Pfloatfield lbl.lbl_pos, [targ], e.exp_loc)
         | Record_extension ->
-          Lprim (Pfield (lbl.lbl_pos + 1), [targ], e.exp_loc)
+          Lprim (Pfield (lbl.lbl_pos + 1, Fld_record lbl.lbl_name), [targ], e.exp_loc)
       end
   | Texp_setfield(arg, _, lbl, newval) ->
       let access =
@@ -969,7 +969,7 @@ and transl_exp0 e =
   | Texp_new (cl, {Location.loc=loc}, _) ->
       Lapply{ap_should_be_tailcall=false;
              ap_loc=loc;
-             ap_func=Lprim(Pfield 0, [transl_class_path ~loc e.exp_env cl], loc);
+             ap_func=Lprim(Pfield (0, Fld_na), [transl_class_path ~loc e.exp_env cl], loc);
              ap_args=[lambda_unit];
              ap_inlined=Default_inline;
              ap_specialised=Default_specialise}
@@ -1258,15 +1258,15 @@ and transl_record loc env fields repres opt_init_expr =
     let init_id = Ident.create "init" in
     let lv =
       Array.mapi
-        (fun i (_, definition) ->
+        (fun i (lbl, definition) ->
            match definition with
            | Kept typ ->
                let field_kind = value_kind env typ in
                let access =
                  match repres with
-                   Record_regular | Record_inlined _ -> Pfield i
+                   Record_regular | Record_inlined _ -> Pfield (i, Fld_record lbl.lbl_name)
                  | Record_unboxed _ -> assert false
-                 | Record_extension -> Pfield (i + 1)
+                 | Record_extension -> Pfield (i + 1, Fld_record lbl.lbl_name)
                  | Record_float -> Pfloatfield i in
                Lprim(access, [Lvar init_id], loc), field_kind
            | Overridden (_lid, expr) ->
