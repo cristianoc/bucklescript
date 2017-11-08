@@ -89,6 +89,9 @@ type t =
   | Unused_module of string                 (* 60 *)
   | Unboxable_type_in_prim_decl of string   (* 61 *)
   | Constraint_on_gadt                      (* 62 *)
+
+  | Bs_unused_attribute of string           (* 101 *)
+  | Bs_polymorphic_comparison               (* 102 *) 
 ;;
 
 (* If you remove a warning, leave a hole in the numbering.  NEVER change
@@ -160,9 +163,12 @@ let number = function
   | Unused_module _ -> 60
   | Unboxable_type_in_prim_decl _ -> 61
   | Constraint_on_gadt -> 62
+
+  | Bs_unused_attribute _ -> 101
+  | Bs_polymorphic_comparison -> 102
 ;;
 
-let last_warning_number = 62
+let last_warning_number = 102
 ;;
 
 (* Must be the max number returned by the [number] function. *)
@@ -513,6 +519,11 @@ let message = function
          or [@@unboxed]." t t
   | Constraint_on_gadt ->
       "Type constraints do not apply to GADT cases of variant types."
+
+  | Bs_unused_attribute s ->
+      "Unused bucklescript attribute: " ^ s
+  | Bs_polymorphic_comparison ->
+      "polymorphic comparison introduced (maybe unsafe)"
 ;;
 
 let sub_locs = function
@@ -541,6 +552,18 @@ let report w =
                sub_locs = sub_locs w;
              }
 ;;
+
+
+#if undefined BS_NO_COMPILER_PATCH then
+(* used by super-errors. Copied from the `print` above *)
+let super_print message ppf w =
+  let msg = message w in
+  let num = number w in
+  Format.fprintf ppf "%s" msg;
+  Format.pp_print_flush ppf ();
+  if (!current).error.(num) then incr nerrors
+;;
+#end
 
 exception Errors;;
 
@@ -628,7 +651,9 @@ let descriptions =
    59, "Assignment to non-mutable value";
    60, "Unused module declaration";
    61, "Unboxable type in primitive declaration";
-   62, "Type constraint on GADT type declaration"
+   62, "Type constraint on GADT type declaration";
+
+   101,"Unused bs attributes";
   ]
 ;;
 

@@ -82,6 +82,9 @@ type t =
   | Unused_module of string                 (* 60 *)
   | Unboxable_type_in_prim_decl of string   (* 61 *)
   | Constraint_on_gadt                      (* 62 *)
+
+  | Bs_unused_attribute of string           (* 101 *)
+  | Bs_polymorphic_comparison               (* 102 *)
 ;;
 
 val parse_options : bool -> string -> unit;;
@@ -116,3 +119,9 @@ val restore: state -> unit
 val mk_lazy: (unit -> 'a) -> 'a Lazy.t
     (** Like [Lazy.of_fun], but the function is applied with
         the warning settings at the time [mk_lazy] is called. *)
+
+#if undefined BS_NO_COMPILER_PATCH then
+val message : t -> string 
+val number: t -> int
+val super_print : (t -> string) -> Format.formatter -> t -> unit;;
+#end
