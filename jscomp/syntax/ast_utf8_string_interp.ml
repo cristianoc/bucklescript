@@ -389,8 +389,8 @@ let concat_exp
   let loc = Bs_loc.merge a.pexp_loc b.pexp_loc in 
   Exp.apply ~loc 
   (Exp.ident { txt =concat_ident; loc})
-    ["",a ;
-     "",b]
+    [Nolabel,a ;
+     Nolabel,b]
 
 let border = String.length "{j|"
 
@@ -403,12 +403,12 @@ let aux loc (segment : segment) =
       | String -> 
         Exp.constant 
           ~loc
-          (Const_string (content, escaped)) 
+          (Pconst_string (content, escaped)) 
       | Var -> 
         Exp.apply ~loc 
           (Exp.ident ~loc {loc ; txt = to_string_ident })
           [
-            "",
+            Nolabel,
             Exp.ident ~loc {loc ; txt = Lident content}
           ]
     end 
@@ -434,7 +434,7 @@ let transform_interp loc s =
     match rev_segments with 
     | [] -> 
       Exp.constant ~loc 
-        (Const_string ("", Some Literals.escaped_j_delimiter)) 
+        (Pconst_string ("", Some Literals.escaped_j_delimiter)) 
     | [ segment] -> 
       aux loc segment 
     | a::rest -> 

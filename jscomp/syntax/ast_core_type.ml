@@ -100,11 +100,10 @@ let is_user_int (ty : t) =
 let is_optional_label l =
   String.length l > 0 && l.[0] = '?'
 
-let label_name l : arg_label =
-  if l = "" then Empty else 
-  if is_optional_label l 
-  then Optional (String.sub l 1 (String.length l - 1))
-  else Label l
+let label_name (l : Asttypes.arg_label) : arg_label = match l with
+  | Nolabel -> Empty
+  | Labelled l -> Label l
+  | Optional l -> Optional l
 
 
 (* Note that OCaml type checker will not allow arbitrary 
@@ -114,7 +113,7 @@ let label_name l : arg_label =
    ]}
    will be recognized as a invalid program
 *)
-let from_labels ~loc arity labels 
+let from_labels ~loc arity labels
   : t =
   let tyvars = 
     ((Ext_list.init arity (fun i ->      
@@ -122,11 +121,11 @@ let from_labels ~loc arity labels
   let result_type =
     Ast_comb.to_js_type loc  
       (Typ.object_ ~loc
-         (Ext_list.map2 (fun x y -> x.Asttypes.txt ,[], y) labels tyvars) Closed)
+         (Ext_list.map2 (fun x y -> Parsetree.Otag (x, [], y)) labels tyvars) Closed)
   in 
   Ext_list.fold_right2 
     (fun {Asttypes.loc ; txt = label }
-      tyvar acc -> Typ.arrow ~loc label tyvar acc) labels tyvars  result_type
+      tyvar acc -> Typ.arrow ~loc (Labelled label) tyvar acc) labels tyvars  result_type
 
 
 let make_obj ~loc xs =
@@ -157,9 +156,9 @@ let rec get_uncurry_arity_aux  (ty : t) acc =
 *)
 let get_uncurry_arity (ty : t ) = 
   match ty.ptyp_desc  with 
-  | Ptyp_arrow("", {ptyp_desc = (Ptyp_constr ({txt = Lident "unit"}, []))}, 
+  | Ptyp_arrow(Nolabel, {ptyp_desc = (Ptyp_constr ({txt = Lident "unit"}, []))}, 
     ({ptyp_desc = Ptyp_arrow _ } as rest  )) -> `Arity (get_uncurry_arity_aux rest 1 )
-  | Ptyp_arrow("", {ptyp_desc = (Ptyp_constr ({txt = Lident "unit"}, []))}, _) -> `Arity 0
+  | Ptyp_arrow(Nolabel, {ptyp_desc = (Ptyp_constr ({txt = Lident "unit"}, []))}, _) -> `Arity 0
   | Ptyp_arrow(_,_,rest ) -> 
     `Arity(get_uncurry_arity_aux rest 1)
   | _ -> `Not_function 

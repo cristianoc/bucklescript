@@ -41,7 +41,7 @@ let arity_of_fun
     (e : Parsetree.expression) =
   let rec aux (e : Parsetree.expression)  =
     match e.pexp_desc with
-    | Pexp_fun ("", None, pat, e) ->
+    | Pexp_fun (Nolabel, None, pat, e) ->
       1 + aux e       
     | Pexp_fun _
       -> Location.raise_errorf

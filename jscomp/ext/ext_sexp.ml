@@ -99,22 +99,22 @@ let get_data buf = buf.top
 
 # 101 "ext/ext_sexp.ml"
 let __ocaml_lex_tables = {
-  Lexing.lex_base = 
+  Lexing.lex_base =
    "\000\000\246\255\247\255\078\000\249\255\250\255\251\255\002\000\
     \001\000\006\000\006\000\255\255\252\255\191\000\246\255\192\000\
     \248\255\195\000\255\255\249\255\012\001\161\000\252\255\007\000\
     \011\000\012\000\210\000\251\255\035\001\250\255";
-  Lexing.lex_backtrk = 
+  Lexing.lex_backtrk =
    "\255\255\255\255\255\255\007\000\255\255\255\255\255\255\008\000\
     \002\000\001\000\008\000\255\255\255\255\255\255\255\255\008\000\
     \255\255\255\255\255\255\255\255\006\000\006\000\255\255\006\000\
     \001\000\002\000\255\255\255\255\255\255\255\255";
-  Lexing.lex_default = 
+  Lexing.lex_default =
    "\002\000\000\000\000\000\255\255\000\000\000\000\000\000\255\255\
     \008\000\255\255\255\255\000\000\000\000\015\000\000\000\015\000\
     \000\000\019\000\000\000\000\000\255\255\255\255\000\000\255\255\
     \255\255\255\255\255\255\000\000\255\255\000\000";
-  Lexing.lex_trans = 
+  Lexing.lex_trans =
    "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
     \000\000\009\000\011\000\255\255\009\000\010\000\255\255\009\000\
     \011\000\025\000\009\000\000\000\024\000\025\000\000\000\000\000\
@@ -184,7 +184,7 @@ let __ocaml_lex_tables = {
     \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
     \000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\
     \000\000\000\000\000\000\000\000";
-  Lexing.lex_check = 
+  Lexing.lex_check =
    "\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
     \255\255\000\000\000\000\008\000\000\000\000\000\008\000\009\000\
     \010\000\023\000\009\000\255\255\024\000\025\000\255\255\255\255\
@@ -254,22 +254,22 @@ let __ocaml_lex_tables = {
     \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
     \255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\255\
     \255\255\255\255\255\255\255\255";
-  Lexing.lex_base_code = 
+  Lexing.lex_base_code =
    "";
-  Lexing.lex_backtrk_code = 
+  Lexing.lex_backtrk_code =
    "";
-  Lexing.lex_default_code = 
+  Lexing.lex_default_code =
    "";
-  Lexing.lex_trans_code = 
+  Lexing.lex_trans_code =
    "";
-  Lexing.lex_check_code = 
+  Lexing.lex_check_code =
    "";
-  Lexing.lex_code = 
+  Lexing.lex_code =
    "";
 }
 
 let rec main buf lexbuf =
-    __ocaml_lex_main_rec buf lexbuf 0
+   __ocaml_lex_main_rec buf lexbuf 0
 and __ocaml_lex_main_rec buf lexbuf __ocaml_lex_state =
   match Lexing.engine __ocaml_lex_tables __ocaml_lex_state lexbuf with
       | 0 ->
@@ -355,11 +355,11 @@ let
       get_data buf )
 # 357 "ext/ext_sexp.ml"
 
-  | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf; 
+  | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;
       __ocaml_lex_main_rec buf lexbuf __ocaml_lex_state
 
 and scan_string buf start lexbuf =
-    __ocaml_lex_scan_string_rec buf start lexbuf 13
+   __ocaml_lex_scan_string_rec buf start lexbuf 13
 and __ocaml_lex_scan_string_rec buf start lexbuf __ocaml_lex_state =
   match Lexing.engine __ocaml_lex_tables __ocaml_lex_state lexbuf with
       | 0 ->
@@ -481,7 +481,7 @@ let
       (
         let ofs = lexbuf.lex_start_pos in
         let len = lexbuf.lex_curr_pos - ofs in
-        Buffer.add_substring buf lexbuf.lex_buffer ofs len;
+        Buffer.add_substring buf (Bytes.to_string lexbuf.lex_buffer) ofs len;
 
         scan_string buf start lexbuf
       )
@@ -494,7 +494,7 @@ let
       )
 # 496 "ext/ext_sexp.ml"
 
-  | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf; 
+  | __ocaml_lex_state -> lexbuf.Lexing.refill_buff lexbuf;
       __ocaml_lex_scan_string_rec buf start lexbuf __ocaml_lex_state
 
 ;;

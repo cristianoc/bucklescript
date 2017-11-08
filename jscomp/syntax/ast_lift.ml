@@ -23,4 +23,4 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
 
 let int ?loc ?attrs x = 
-  Ast_helper.Exp.constant ?loc ?attrs (Const_int x)
+  Ast_helper.Exp.constant ?loc ?attrs (Ast_helper.Const.int x)

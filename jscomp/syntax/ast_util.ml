@@ -25,14 +25,14 @@
 open Ast_helper 
 type 'a cxt = Ast_helper.loc -> Ast_mapper.mapper -> 'a
 type loc = Location.t 
-type args = (string * Parsetree.expression) list
+type args = (Asttypes.arg_label * Parsetree.expression) list
 type label_exprs = (Longident.t Asttypes.loc * Parsetree.expression) list
 type uncurry_expression_gen = 
   (Parsetree.pattern ->
    Parsetree.expression ->
    Parsetree.expression_desc) cxt
 type uncurry_type_gen = 
-  (string ->
+  (Asttypes.arg_label ->
    Parsetree.core_type ->
    Parsetree.core_type  ->
    Parsetree.core_type) cxt
@@ -50,7 +50,7 @@ let arity_lit = "Arity_"
 
 let mk_args loc n tys = 
   Typ.variant ~loc 
-    [ Rtag (arity_lit ^ string_of_int n, [], (n = 0),  tys)] Closed None
+    [ Rtag ({txt = arity_lit ^ string_of_int n; loc}, [], (n = 0),  tys)] Closed None
 
 let generic_lift txt loc args result  = 
   let xs =
@@ -95,7 +95,7 @@ let js_property loc obj name =
         (Exp.ident ~loc
            {loc;
             txt = Ldot (Ast_literal.Lid.js_unsafe, Literals.unsafe_downgrade)})
-        ["",obj]), name)
+        [Nolabel,obj]), name)
 
 (* TODO: 
    have a final checking for property arities 
@@ -110,7 +110,7 @@ let generic_apply  kind loc
   let obj = self.expr self obj in
   let args =
     Ext_list.map (fun (label,e) ->
-        if label <> "" then
+        if label <> Asttypes.Nolabel then
           Bs_syntaxerr.err loc Label_in_uncurried_bs_attribute;
         self.expr self e
       ) args in
@@ -133,7 +133,7 @@ let generic_apply  kind loc
         Longident.Ldot(Ast_literal.Lid.js_unsafe,
                        Literals.method_run ^ string_of_int arity
                       ) in 
-    Parsetree.Pexp_apply (Exp.ident {txt ; loc}, ("",fn) :: Ext_list.map (fun x -> "",x) args)
+    Parsetree.Pexp_apply (Exp.ident {txt ; loc}, (Nolabel,fn) :: Ext_list.map (fun x -> Asttypes.Nolabel,x) args)
   else 
     let fn_type, args_type, result_type = Ast_comb.tuple_type_pair ~loc `Run arity  in 
     let string_arity = string_of_int arity in
@@ -141,13 +141,13 @@ let generic_apply  kind loc
       match kind with 
       | `Fn | `PropertyFn -> 
         ["#fn_run"; string_arity], 
-        arrow ~loc ""  (lift_curry_type loc args_type result_type ) fn_type
+        arrow ~loc Nolabel (lift_curry_type loc args_type result_type ) fn_type
       | `Method -> 
         ["#method_run" ; string_arity], 
-        arrow ~loc "" (lift_method_type loc args_type result_type) fn_type
+        arrow ~loc Nolabel (lift_method_type loc args_type result_type) fn_type
     in
     Ast_external_mk.local_external loc ~pval_prim ~pval_type 
-      (("", fn) :: Ext_list.map (fun x -> "",x) args )
+      ((Nolabel, fn) :: Ext_list.map (fun x -> Asttypes.Nolabel,x) args )
 
 
 let uncurry_fn_apply loc self fn args = 
@@ -164,7 +164,7 @@ let method_apply loc self obj name args =
 let generic_to_uncurry_type  kind loc (mapper : Ast_mapper.mapper) label
     (first_arg : Parsetree.core_type) 
     (typ : Parsetree.core_type)  =
-  if label <> "" then
+  if label <> Asttypes.Nolabel then
     Bs_syntaxerr.err loc Label_in_uncurried_bs_attribute;
 
   let rec aux acc (typ : Parsetree.core_type) = 
@@ -178,7 +178,7 @@ let generic_to_uncurry_type  kind loc (mapper : Ast_mapper.mapper) label
       begin match typ.ptyp_desc with 
         | Ptyp_arrow (label, arg, body)
           -> 
-          if label <> "" then
+          if label <> Nolabel then
             Bs_syntaxerr.err typ.ptyp_loc Label_in_uncurried_bs_attribute;
           aux (mapper.typ mapper arg :: acc) body 
         | _ -> mapper.typ mapper typ, acc 
@@ -222,7 +222,7 @@ let generic_to_uncurry_exp kind loc (self : Ast_mapper.mapper)  pat body
       begin match body.pexp_desc with 
         | Pexp_fun (label,_, arg, body)
           -> 
-          if label <> "" then
+          if label <> Nolabel then
             Bs_syntaxerr.err loc Label_in_uncurried_bs_attribute;
           aux (self.pat self arg :: acc) body 
         | _ -> self.expr self body, acc 
@@ -261,7 +261,7 @@ let generic_to_uncurry_exp kind loc (self : Ast_mapper.mapper)  pat body
         Longident.Ldot ( Ast_literal.Lid.js_unsafe, Literals.fn_mk ^ string_of_int arity)
       | `Method_callback -> 
         Longident.Ldot (Ast_literal.Lid.js_unsafe,  Literals.fn_method ^ string_of_int arity) in
-    Parsetree.Pexp_apply (Exp.ident {txt;loc} , ["",body])
+    Parsetree.Pexp_apply (Exp.ident {txt;loc} , [Nolabel,body])
 
   else 
     let pval_prim =
@@ -270,7 +270,7 @@ let generic_to_uncurry_exp kind loc (self : Ast_mapper.mapper)  pat body
             | `Method_callback -> "#fn_method"); 
         string_of_int arity]  in
     let fn_type , args_type, result_type  = Ast_comb.tuple_type_pair ~loc `Make arity  in 
-    let pval_type = arrow ~loc "" fn_type (
+    let pval_type = arrow ~loc Nolabel fn_type (
         match kind with 
         | `Fn -> 
           lift_curry_type loc args_type result_type
@@ -278,7 +278,7 @@ let generic_to_uncurry_exp kind loc (self : Ast_mapper.mapper)  pat body
           lift_js_method_callback loc args_type result_type
       ) in
     Ast_external_mk.local_extern_cont loc ~pval_prim ~pval_type 
-      (fun prim -> Exp.apply ~loc prim ["", body]) 
+      (fun prim -> Exp.apply ~loc prim [Nolabel, body]) 
 
 let to_uncurry_fn   = 
   generic_to_uncurry_exp `Fn
@@ -290,7 +290,7 @@ let handle_debugger loc payload =
   if Ast_payload.as_empty_structure payload then
     Parsetree.Pexp_apply
       (Exp.ident {txt = Ldot(Ast_literal.Lid.js_unsafe, Literals.debugger ); loc}, 
-       ["", Ast_literal.val_unit ~loc ()])
+       [Nolabel, Ast_literal.val_unit ~loc ()])
   else Location.raise_errorf ~loc "bs.raw can only be applied to a string"
 
 
@@ -308,7 +308,7 @@ let handle_raw ?(check_js_regex = false) loc payload =
                      txt = 
                        Ldot (Ast_literal.Lid.js_unsafe, 
                              Literals.raw_expr)},
-          ["",exp]
+          [Nolabel,exp]
         )
       in
       { exp with pexp_desc }
@@ -321,8 +321,8 @@ let handle_external loc x =
          {loc; txt = Ldot (Ast_literal.Lid.js_unsafe, 
                            Literals.raw_expr)})
       ~loc 
-      [Ext_string.empty, 
-        Exp.constant ~loc (Const_string (x,Some Ext_string.empty))] in 
+      [Nolabel, 
+        Exp.constant ~loc (Pconst_string (x,Some Ext_string.empty))] in 
   let empty = 
     Exp.ident ~loc 
     {txt = Ldot (Ldot(Lident"Js", "Undefined"), "empty");loc}    
@@ -333,15 +333,15 @@ let handle_external loc x =
     Exp.ident {loc ; txt = Ldot(Lident "Js","typeof")} in 
 
   Exp.apply ~loc undefined_typeof [
-    Ext_string.empty,
+    Nolabel,
     Exp.ifthenelse ~loc
     (Exp.apply ~loc 
       (Exp.ident ~loc {loc ; txt = Ldot (Lident "Pervasives", "=")} )
       [ 
-        Ext_string.empty,
-        (Exp.apply ~loc typeof [Ext_string.empty,raw_exp]);
-        Ext_string.empty, 
-        Exp.constant ~loc (Const_string ("undefined",None))  
+        Nolabel,
+        (Exp.apply ~loc typeof [Nolabel,raw_exp]);
+        Nolabel, 
+        Exp.constant ~loc (Pconst_string ("undefined",None))  
         ])      
       (empty)
       (Some raw_exp)
@@ -355,7 +355,7 @@ let handle_raw_structure loc payload =
       let pexp_desc = 
         Parsetree.Pexp_apply(
           Exp.ident {txt = Ldot (Ast_literal.Lid.js_unsafe,  Literals.raw_stmt); loc},
-          ["",exp]) in 
+          [Nolabel,exp]) in 
       Ast_helper.Str.eval 
         { exp with pexp_desc }
 
@@ -396,7 +396,7 @@ let ocaml_obj_as_js_object
     ((val_name , [], result ) ::
      (if is_mutable then 
         [val_name ^ Literals.setter_suffix,[],
-         to_method_type loc mapper "" result (Ast_literal.type_unit ~loc ()) ]
+         to_method_type loc mapper Nolabel result (Ast_literal.type_unit ~loc ()) ]
       else 
         []) )
   in 
@@ -409,7 +409,7 @@ let ocaml_obj_as_js_object
       method_name arity : Ast_core_type.t = 
     let result = Typ.var ~loc method_name in   
     if arity = 0 then
-      to_method_type loc mapper "" (Ast_literal.type_unit ~loc ()) result 
+      to_method_type loc mapper Nolabel (Ast_literal.type_unit ~loc ()) result 
 
     else
       let tyvars =
@@ -418,9 +418,9 @@ let ocaml_obj_as_js_object
       begin match tyvars with
         | x :: rest ->
           let method_rest =
-            Ext_list.fold_right (fun v acc -> Typ.arrow ~loc "" v acc)
+            Ext_list.fold_right (fun v acc -> Typ.arrow ~loc Nolabel v acc)
               rest result in         
-          to_method_type loc mapper "" x method_rest
+          to_method_type loc mapper Nolabel x method_rest
         | _ -> assert false
       end in          
 
@@ -437,7 +437,7 @@ let ocaml_obj_as_js_object
       | Some ty -> Typ.alias ~loc ty self_type_lit
     in  
     if arity = 0 then
-      to_method_callback_type loc mapper  "" self_type result      
+      to_method_callback_type loc mapper Nolabel self_type result      
     else
       let tyvars =
         Ext_list.init arity (fun i -> Typ.var ~loc (method_name ^ string_of_int i))
@@ -445,10 +445,10 @@ let ocaml_obj_as_js_object
       begin match tyvars with
         | x :: rest ->
           let method_rest =
-            Ext_list.fold_right (fun v acc -> Typ.arrow ~loc "" v acc)
+            Ext_list.fold_right (fun v acc -> Typ.arrow ~loc Nolabel v acc)
               rest result in         
-          (to_method_callback_type loc mapper  "" self_type
-             (Typ.arrow ~loc "" x method_rest))
+          (to_method_callback_type loc mapper Nolabel self_type
+             (Typ.arrow ~loc Nolabel x method_rest))
         | _ -> assert false
       end in          
 
@@ -472,7 +472,7 @@ let ocaml_obj_as_js_object
           ->
           begin match e.pexp_desc with
             | Pexp_poly
-                (({pexp_desc = Pexp_fun ("", None, pat, e)} ),
+                (({pexp_desc = Pexp_fun (Nolabel, None, pat, e)} ),
                  None) ->  
               let arity = Ast_pat.arity_of_fun pat e in
               let method_type =
@@ -517,8 +517,10 @@ let ocaml_obj_as_js_object
         | Pcf_constraint _ ->
           Location.raise_errorf ~loc "Only method support currently"
       ) clfs ([], []) in
-  let internal_obj_type = Ast_core_type.make_obj ~loc internal_label_attr_types in
-  let public_obj_type = Ast_core_type.make_obj ~loc public_label_attr_types in
+  let add_otag l =
+    List.map (fun (x,y,z) -> Parsetree.Otag ({Asttypes.txt=x; loc}, y, z)) l in
+  let internal_obj_type = Ast_core_type.make_obj ~loc (add_otag internal_label_attr_types) in
+  let public_obj_type = Ast_core_type.make_obj ~loc (add_otag public_label_attr_types) in
   let (labels,  label_types, exprs, _) =
     Ext_list.fold_right
       (fun (x  : Parsetree.class_field)
@@ -534,7 +536,7 @@ let ocaml_obj_as_js_object
           ->
           begin match e.pexp_desc with
             | Pexp_poly
-                (({pexp_desc = Pexp_fun ("", None, pat, e)} as f),
+                (({pexp_desc = Pexp_fun (Nolabel, None, pat, e)} as f),
                  None) ->  
               let arity = Ast_pat.arity_of_fun pat e in
               let alias_type = 
@@ -599,7 +601,7 @@ let ocaml_obj_as_js_object
       (fun label label_type acc ->
          Typ.arrow
            ~loc:label.Asttypes.loc
-           label.Asttypes.txt
+           (Labelled label.Asttypes.txt)
            label_type acc           
       ) labels label_types public_obj_type in
   Ast_external_mk.local_extern_cont
@@ -607,7 +609,7 @@ let ocaml_obj_as_js_object
     ~pval_prim:(External_process.pval_prim_of_labels labels)
     (fun e ->
        Exp.apply ~loc e
-         (Ext_list.map2 (fun l expr -> l.Asttypes.txt, expr) labels exprs) )
+         (Ext_list.map2 (fun l expr -> (Asttypes.Labelled l.Asttypes.txt), expr) labels exprs) )
     ~pval_type
 
 
@@ -621,7 +623,7 @@ let record_as_js_object
     Ext_list.fold_right (fun ({Location.txt ; loc}, e) (labels,args,i) -> 
         match txt with
         | Longident.Lident x ->
-          ({Asttypes.loc = loc ; txt = x} :: labels, (x, self.expr self e) :: args, i + 1)
+          ({Asttypes.loc = loc ; txt = x} :: labels, (Asttypes.Labelled x, self.expr self e) :: args, i + 1)
         | Ldot _ | Lapply _ ->  
           Location.raise_errorf ~loc "invalid js label ") label_exprs ([],[],0) in
   Ast_external_mk.local_external loc 
@@ -653,13 +655,13 @@ let convertBsErrorFunction loc  (self : Ast_mapper.mapper) attrs (cases : Parset
       (Ast_core_type.lift_option_type (Typ.any ~loc ())) in
   let () = checkCases cases in  
   let cases = self.cases self cases in 
-  Exp.fun_ ~attrs ~loc ""  None ( Pat.var ~loc  {txt; loc })
+  Exp.fun_ ~attrs ~loc Nolabel  None ( Pat.var ~loc  {txt; loc })
     (Exp.ifthenelse
     ~loc 
-    (Exp.apply ~loc (Exp.ident ~loc {txt = isCamlExceptionOrOpenVariant ; loc}) ["", txt_expr ])
+    (Exp.apply ~loc (Exp.ident ~loc {txt = isCamlExceptionOrOpenVariant ; loc}) [Nolabel, txt_expr ])
     (Exp.match_ ~loc 
        (Exp.constraint_ ~loc 
-          (Exp.apply  ~loc (Exp.ident ~loc {txt =  obj_magic; loc}) ["", txt_expr])
+          (Exp.apply  ~loc (Exp.ident ~loc {txt =  obj_magic; loc}) [Nolabel, txt_expr])
           (Ast_literal.type_exn ~loc ())
        )
       (Ext_list.map_append (fun (x :Parsetree.case ) ->

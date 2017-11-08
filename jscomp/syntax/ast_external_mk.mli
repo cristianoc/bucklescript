@@ -38,7 +38,7 @@ val local_external : Location.t ->
   pval_type:Parsetree.core_type ->
   ?local_module_name:string ->
   ?local_fun_name:string ->
-  (string * Parsetree.expression) list -> Parsetree.expression_desc
+  (Asttypes.arg_label * Parsetree.expression) list -> Parsetree.expression_desc
 
 val local_extern_cont : 
   Location.t ->

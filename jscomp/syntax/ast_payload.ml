@@ -31,7 +31,7 @@ let is_single_string (x : t ) =
         Pstr_eval (
           {pexp_desc = 
              Pexp_constant 
-               (Const_string (name,dec));
+               (Pconst_string (name,dec));
            _},_);
       _}] -> Some (name,dec)
   | _  -> None
@@ -43,9 +43,9 @@ let is_single_int (x : t ) =
         Pstr_eval (
           {pexp_desc = 
              Pexp_constant 
-               (Const_int name);
+               (Pconst_integer (name, None));
            _},_);
-      _}] -> Some name
+      _}] -> Some (int_of_string name)
   | _  -> None
 
 type rtn = Not_String_Lteral | JS_Regex_Check_Failed | Correct of Parsetree.expression
@@ -56,7 +56,7 @@ let as_string_exp ?(check_js_regex = false) (x : t ) =
         Pstr_eval (
           {pexp_desc = 
              Pexp_constant 
-               (Const_string (str,_));
+               (Pconst_string (str,_));
            _} as e ,_);
       _}] -> if check_js_regex then (if Ext_js_regex.js_regex_checker str then Correct e else JS_Regex_Check_Failed) else Correct e
   | _  -> Not_String_Lteral
@@ -82,12 +82,12 @@ let as_ident (x : t ) =
 open Ast_helper
 
 let raw_string_payload loc (s : string) : t =
-  PStr [ Str.eval ~loc (Exp.constant ~loc (Const_string (s,None)  ))]
+  PStr [ Str.eval ~loc (Exp.constant ~loc (Pconst_string (s,None)  ))]
 
 let as_empty_structure (x : t ) = 
   match x with 
   | PStr ([]) -> true
-  | PTyp _ | PPat _ | PStr (_ :: _ ) -> false 
+  | PTyp _ | PPat _ | PStr (_ :: _ ) | PSig _ -> false 
 
 type lid = string Asttypes.loc
 type label_expr = lid  * Parsetree.expression
@@ -162,7 +162,7 @@ let assert_strings loc (x : t) : string list
     (try 
        strs |> Ext_list.map (fun e ->
            match (e : Parsetree.expression) with
-           | {pexp_desc = Pexp_constant (Const_string (name,_)); _} -> 
+           | {pexp_desc = Pexp_constant (Pconst_string (name,_)); _} -> 
              name
            | _ -> raise M.Not_str)
      with M.Not_str ->
@@ -173,12 +173,12 @@ let assert_strings loc (x : t) : string list
         Pstr_eval (
           {pexp_desc = 
              Pexp_constant 
-               (Const_string (name,_));
+               (Pconst_string (name,_));
            _},_);
       _}] ->  [name] 
   | PStr [] ->  []
   | PStr _                
-  | PTyp _ | PPat _ ->
+  | PTyp _ | PPat _ | PSig _ ->
     Location.raise_errorf ~loc "expect string tuple list"
 let assert_bool_lit  (e : Parsetree.expression) = 
   match e.pexp_desc with

@@ -24,7 +24,7 @@ let init () =
                       Str.value Nonrecursive
 
                         [Vb.mk (Pat.var pld_name) @@
-                         Exp.fun_ "" None
+                         Exp.fun_ Nolabel None
                            (Pat.constraint_ (Pat.var {txt ; loc}) core_type )
                            (Exp.field (Exp.ident {txt = Lident txt ; loc}) 
                               {txt = Longident.Lident pld_label ; loc}) ]
@@ -40,8 +40,10 @@ let init () =
                       ( {pcd_name = {loc ; txt = con_name} ; pcd_args ; pcd_loc }:
                           Parsetree.constructor_declaration)
                       -> (* TODO: add type annotations *)
-                        let little_con_name = String.uncapitalize con_name  in
-                        let arity = List.length pcd_args in 
+                        let little_con_name = String.uncapitalize_ascii con_name  in
+                        let arity = match pcd_args with
+                            | Pcstr_tuple l -> List.length l
+                            | Pcstr_record l -> List.length l in 
                         if arity = 0 then 
                           Str.value Nonrecursive 
                             [Vb.mk  
@@ -71,7 +73,7 @@ let init () =
                             in 
                             let fun_ = 
                               Ext_list.fold_right  (fun var b -> 
-                                  Exp.fun_ "" None  (Pat.var {loc ; txt = var}) b 
+                                  Exp.fun_ Nolabel None  (Pat.var {loc ; txt = var}) b 
                                 ) vars exp  in 
 
                             Str.value Nonrecursive
@@ -105,7 +107,7 @@ let init () =
                                 Parsetree.label_declaration) -> 
                              Sig.value 
                                (Val.mk pld_name 
-                                  (Typ.arrow "" core_type pld_type )))
+                                  (Typ.arrow Nolabel core_type pld_type )))
                 | {ptype_kind = 
                      Ptype_variant constructor_declarations 
                   } -> 
@@ -116,11 +118,11 @@ let init () =
                              Parsetree.constructor_declaration)
                       -> 
                         Sig.value 
-                          (Val.mk {loc ; txt = (String.uncapitalize con_name)}
+                          (Val.mk {loc ; txt = (String.uncapitalize_ascii con_name)}
                              
                            (Ext_list.fold_right 
-                              (fun x acc -> Typ.arrow "" x acc) 
-                              pcd_args
+                              (fun x acc -> Typ.arrow Nolabel x acc) 
+                              (match pcd_args with Pcstr_tuple l -> l | Pcstr_record _ (* TODO *) -> [])
                               core_type)
                           )
                     )

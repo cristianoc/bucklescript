@@ -23,7 +23,7 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA. *)
 
 
-type args = (string * Parsetree.expression) list
+type args = (Asttypes.arg_label * Parsetree.expression) list
 type loc = Location.t 
 type label_exprs = (Longident.t Asttypes.loc * Parsetree.expression) list
 type 'a cxt = loc -> Ast_mapper.mapper -> 'a
@@ -38,7 +38,7 @@ type uncurry_expression_gen =
    Parsetree.expression ->
    Parsetree.expression_desc) cxt
 type uncurry_type_gen = 
-  (string -> (* label for error checking *)
+  (Asttypes.arg_label -> (* label for error checking *)
    Parsetree.core_type ->
    Parsetree.core_type  ->
    Parsetree.core_type) cxt
@@ -53,14 +53,14 @@ val uncurry_fn_apply :
 (** syntax : {[f## arg0 arg1 ]}*)
 val method_apply : 
   (Parsetree.expression ->
-  string ->
+  Asttypes.label Asttypes.loc ->
   args ->
   Parsetree.expression_desc) cxt 
 
 (** syntax {[f#@ arg0 arg1 ]}*)
 val property_apply : 
   (Parsetree.expression ->
-  string ->
+  Asttypes.label Asttypes.loc ->
   args ->
   Parsetree.expression_desc) cxt 
 
@@ -107,7 +107,7 @@ val record_as_js_object :
 
 val js_property : 
   loc ->
-  Parsetree.expression -> string -> Parsetree.expression_desc
+  Parsetree.expression -> Asttypes.label Asttypes.loc -> Parsetree.expression_desc
 
 val handle_debugger : 
   loc -> Ast_payload.t -> Parsetree.expression_desc

@@ -45,7 +45,7 @@ let emit_external_warnings : Bs_ast_iterator .iterator=
       );
     expr = (fun self a -> 
       match a.Parsetree.pexp_desc with 
-      | Pexp_constant (Const_string (_, Some s)) 
+      | Pexp_constant (Pconst_string (_, Some s)) 
         when Ext_string.equal s Literals.unescaped_j_delimiter 
         || Ext_string.equal s Literals.unescaped_js_delimiter -> 
         Bs_warnings.error_unescaped_delimiter a.pexp_loc s 

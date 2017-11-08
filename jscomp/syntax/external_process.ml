@@ -95,21 +95,21 @@ let get_arg_type ~nolabel optional
                -> 
                begin match Ast_attributes.process_bs_string_as attrs with 
                  | Some name, new_attrs  -> 
-                   `Null, ((Ext_pervasives.hash_variant label, name) :: acc ), 
+                   `Null, ((Ext_pervasives.hash_variant label.txt, name) :: acc ), 
                    Parsetree.Rtag(label, new_attrs, true, []) :: row_fields
 
                  | None, _ -> 
-                   `Null, ((Ext_pervasives.hash_variant label, label) :: acc ), 
+                   `Null, ((Ext_pervasives.hash_variant label.txt, label.txt) :: acc ), 
                    tag :: row_fields
                end
              | (`Nothing | `NonNull), Parsetree.Rtag(label, attrs, false, ([ _ ] as vs)) 
                -> 
                begin match Ast_attributes.process_bs_string_as attrs with 
                  | Some name, new_attrs -> 
-                   `NonNull, ((Ext_pervasives.hash_variant label, name) :: acc),
+                   `NonNull, ((Ext_pervasives.hash_variant label.txt, name) :: acc),
                    Parsetree.Rtag (label, new_attrs, false, vs) :: row_fields
                  | None, _ -> 
-                   `NonNull, ((Ext_pervasives.hash_variant label, label) :: acc),
+                   `NonNull, ((Ext_pervasives.hash_variant label.txt, label.txt) :: acc),
                    (tag :: row_fields)
                end
              | _ -> Bs_syntaxerr.err ptyp.ptyp_loc Invalid_bs_string_type
@@ -135,10 +135,10 @@ let get_arg_type ~nolabel optional
                 -> 
                 begin match Ast_attributes.process_bs_int_as attrs with 
                   | Some i, new_attrs -> 
-                    i + 1, ((Ext_pervasives.hash_variant label , i):: acc ), 
+                    i + 1, ((Ext_pervasives.hash_variant label.txt , i):: acc ), 
                     Parsetree.Rtag (label, new_attrs, true, []) :: row_fields
                   | None, _ -> 
-                    i + 1 , ((Ext_pervasives.hash_variant label , i):: acc ), rtag::row_fields
+                    i + 1 , ((Ext_pervasives.hash_variant label.txt, i):: acc ), rtag::row_fields
                 end
 
               | _ -> 
@@ -491,7 +491,7 @@ let handle_attributes
                        {arg_label = External_arg_spec.label s (Some i);
                         arg_type }, 
                        arg_types, (* ignored in [arg_types], reserved in [result_types] *)
-                       ((name , [], new_ty) :: result_types)
+                       ((name, [], new_ty) :: result_types)
                      | Nothing | Array -> 
                        let s = (Lam_methname.translate ~loc name) in
                        {arg_label = External_arg_spec.label s None ; arg_type },
@@ -566,7 +566,9 @@ let handle_attributes
 
         let result = 
           if Ast_core_type.is_any  result_type then            
-            Ast_core_type.make_obj ~loc result_types 
+            Ast_core_type.make_obj ~loc
+              (List.map (fun (x,y,z) ->
+                Parsetree.Otag ({Asttypes.txt=x; loc}, y, z)) result_types) 
           else           
             snd @@ get_arg_type ~nolabel:true false result_type (* result type can not be labeled *)            
 
@@ -602,7 +604,7 @@ let handle_attributes
                    (* ?x:([`x of int ] [@bs.string]) does not make sense *)
                    Location.raise_errorf 
                      ~loc
-                     "[@@bs.string] does not work with optional when it has arities in label %s" label
+                     "[@@bs.string] does not work with optional when it has arities in label %s" s
                  | _ -> 
                    External_arg_spec.optional s, arg_type, 
                    ((label, Ast_core_type.lift_option_type new_ty , attr,loc) :: arg_types) end
@@ -643,7 +645,7 @@ let handle_attributes
                (* more error checking *)
                [External_arg_spec.empty_kind arg_type]
                ,
-               ["", new_ty, [], obj.ptyp_loc]
+               [Nolabel, new_ty, [], obj.ptyp_loc]
                ,0
            end
 

@@ -32,10 +32,10 @@ let core_type_of_type_declaration (tdcl : Parsetree.type_declaration) =
 
 let lift_string_list_to_array (labels : string list) = 
   Exp.array
-    (Ext_list.map (fun s -> Exp.constant (Const_string (s, None)))
+    (Ext_list.map (fun s -> Exp.constant (Pconst_string (s, None)))
        labels)
 
-let lift_int i = Exp.constant (Const_int i)
+let lift_int i = Exp.constant (Const.int i)
 let lift_int_list_to_array (labels : int list) = 
   Exp.array (Ext_list.map lift_int labels)
 
@@ -44,7 +44,7 @@ let mk_fun ~loc (typ : Parsetree.core_type)
     (value : string) body
   : Parsetree.expression = 
   Exp.fun_ 
-    "" None
+    Nolabel None
     (Pat.constraint_ (Pat.var {txt = value ; loc}) typ)
     body
 

@@ -99,7 +99,9 @@ module T = struct
     | Ptyp_constr (lid, tl) ->
         iter_loc sub lid; List.iter (sub.typ sub) tl
     | Ptyp_object (l, _o) ->
-        let f (_, a, t) = sub.attributes sub a; sub.typ sub t in
+        let f = function
+            | Otag (_, a, t) -> sub.attributes sub a; sub.typ sub t
+            | Oinherit _ -> () in
         List.iter f l
     | Ptyp_class (lid, tl) ->
         iter_loc sub lid; List.iter (sub.typ sub) tl
@@ -136,8 +138,9 @@ module T = struct
     | Ptype_record l -> List.iter (sub.label_declaration sub) l
     | Ptype_open -> ()
 
-  let iter_constructor_arguments sub l = List.iter (sub.typ sub) l
-      (*# no inline record in 4.02.3*)
+  let iter_constructor_arguments sub = function
+    | Pcstr_tuple l -> List.iter (sub.typ sub) l 
+    | Pcstr_record l -> List.iter (sub.label_declaration sub) l
   let iter_type_extension sub
       {ptyext_path; ptyext_params;
        ptyext_constructors;
@@ -179,6 +182,8 @@ module CT = struct
     | Pcty_arrow (_lab, t, ct) ->
         sub.typ sub t; sub.class_type sub ct
     | Pcty_extension x -> sub.extension sub x
+    | Pcty_open (_flg, li, ct) ->
+        iter_loc sub li; sub.class_type sub ct
 
   let iter_field sub {pctf_desc = desc; pctf_loc = loc; pctf_attributes = attrs}
     =
@@ -223,7 +228,8 @@ module MT = struct
         iter_loc sub lid; sub.type_declaration sub d
     | Pwith_module (lid, lid2) ->
         iter_loc sub lid; iter_loc sub lid2
-    | Pwith_typesubst d -> sub.type_declaration sub d
+    | Pwith_typesubst (lid, d) ->
+        iter_loc sub lid; sub.type_declaration sub d
     | Pwith_modsubst (s, lid) ->
         iter_loc sub s; iter_loc sub lid
 
@@ -231,8 +237,7 @@ module MT = struct
     sub.location sub loc;
     match desc with
     | Psig_value vd -> sub.value_description sub vd
-    | Psig_type ( l) -> List.iter (sub.type_declaration sub) l
-    (*#2 no rec_flag in 4.02.3*)
+    | Psig_type (_rec_flag, l) -> List.iter (sub.type_declaration sub) l
     | Psig_typext te -> sub.type_extension sub te
     | Psig_exception ed -> sub.extension_constructor sub ed
     | Psig_module x -> sub.module_declaration sub x
@@ -277,8 +282,7 @@ module M = struct
         sub.expr sub x; sub.attributes sub attrs
     | Pstr_value (_r, vbs) -> List.iter (sub.value_binding sub) vbs
     | Pstr_primitive vd -> sub.value_description sub vd
-    | Pstr_type ( l) -> List.iter (sub.type_declaration sub) l
-    (*#3 no rec flag in 4.02.3*)
+    | Pstr_type (_rec_flag, l) -> List.iter (sub.type_declaration sub) l
     | Pstr_typext te -> sub.type_extension sub te
     | Pstr_exception ed -> sub.extension_constructor sub ed
     | Pstr_module x -> sub.module_binding sub x
@@ -354,10 +358,9 @@ module E = struct
     | Pexp_letmodule (s, me, e) ->
         iter_loc sub s; sub.module_expr sub me;
         sub.expr sub e
-    (* | Pexp_letexception (cd, e) -> *)
-    (*     sub.extension_constructor sub cd; *)
-    (*     sub.expr sub e *)
-    (* no local exception *)
+    | Pexp_letexception (cd, e) ->
+        sub.extension_constructor sub cd;
+        sub.expr sub e
     | Pexp_assert e -> sub.expr sub e
     | Pexp_lazy e -> sub.expr sub e
     | Pexp_poly (e, t) ->
@@ -368,7 +371,7 @@ module E = struct
     | Pexp_open (_ovf, lid, e) ->
         iter_loc sub lid; sub.expr sub e
     | Pexp_extension x -> sub.extension sub x
-    (* | Pexp_unreachable -> () *)
+    | Pexp_unreachable -> ()
 end
 
 module P = struct
@@ -398,8 +401,8 @@ module P = struct
     | Ppat_unpack s -> iter_loc sub s
     | Ppat_exception p -> sub.pat sub p
     | Ppat_extension x -> sub.extension sub x
-    (* | Ppat_open (lid, p) -> *)
-    (*     iter_loc sub lid; sub.pat sub p *)
+    | Ppat_open (lid, p) ->
+        iter_loc sub lid; sub.pat sub p
 
 end
 
@@ -427,6 +430,9 @@ module CE = struct
     | Pcl_constraint (ce, ct) ->
         sub.class_expr sub ce; sub.class_type sub ct
     | Pcl_extension x -> sub.extension sub x
+    | Pcl_open (_flag, lid, ce) ->
+        iter_loc sub lid;
+        sub.class_expr sub ce
 
   let iter_kind sub = function
     | Cfk_concrete (_o, e) -> sub.expr sub e
@@ -590,7 +596,7 @@ let default_iterator =
     payload =
       (fun this -> function
          | PStr x -> this.structure this x
-         (* | PSig x -> this.signature this x *)
+         | PSig x -> this.signature this x
          | PTyp x -> this.typ this x
          | PPat (x, g) -> this.pat this x; iter_opt (this.expr this) g
       );

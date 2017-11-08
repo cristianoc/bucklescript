@@ -139,7 +139,7 @@ let handle_class_type_field self
     let get ty name pctf_attributes =
       {ctf with 
        pctf_desc =  
-         Pctf_method (name , 
+         Pctf_method ({txt = name; loc}, 
                       private_flag, 
                       virtual_flag, 
                       self.typ self ty
@@ -148,15 +148,15 @@ let handle_class_type_field self
     let set ty name pctf_attributes =
       {ctf with 
        pctf_desc =
-         Pctf_method (name, 
+         Pctf_method ({txt = name; loc}, 
                       private_flag,
                       virtual_flag,
                       Ast_util.to_method_type
-                        loc self "" ty
+                        loc self Nolabel ty
                         (Ast_literal.type_unit ~loc ())
                      );
        pctf_attributes} in
-    process_getter_setter ~no ~get ~set loc name ctf.pctf_attributes ty acc     
+    process_getter_setter ~no ~get ~set loc name.txt ctf.pctf_attributes ty acc     
 
   | Pctf_inherit _ 
   | Pctf_val _ 
@@ -205,7 +205,9 @@ let handle_core_type
     let (+>) attr (typ : Parsetree.core_type) =
       {typ with ptyp_attributes = attr :: typ.ptyp_attributes} in           
     let new_methods =
-      Ext_list.fold_right (fun (label, ptyp_attrs, core_type) acc ->
+      Ext_list.fold_right (fun object_field acc -> match object_field with
+        | Parsetree.Oinherit _ -> acc
+        | Parsetree.Otag (label, ptyp_attrs, core_type) ->
           let get ty name attrs =
             let attrs, core_type =
               match Ast_attributes.process_attributes_rev attrs with
@@ -217,7 +219,7 @@ let handle_core_type
               | `Meth_callback, attrs ->
                 attrs, Ast_attributes.bs_this +> ty 
             in 
-            name , attrs, self.typ self core_type in
+            {Asttypes.txt = name; loc}, attrs, self.typ self core_type in
           let set ty name attrs =
             let attrs, core_type =
               match Ast_attributes.process_attributes_rev attrs with
@@ -229,7 +231,7 @@ let handle_core_type
               | `Meth_callback, attrs ->
                 attrs, Ast_attributes.bs_this +> ty
             in               
-            name, attrs, Ast_util.to_method_type loc self "" core_type 
+            {Asttypes.txt = name; loc}, attrs, Ast_util.to_method_type loc self Nolabel core_type 
               (Ast_literal.type_unit ~loc ()) in
           let no ty =
             let attrs, core_type =
@@ -243,9 +245,12 @@ let handle_core_type
                 attrs, Ast_attributes.bs_this +> ty  in            
             label, attrs, self.typ self core_type in
           process_getter_setter ~no ~get ~set
-            loc label ptyp_attrs core_type acc
+            loc label.txt ptyp_attrs core_type acc
         ) methods [] in      
     let inner_type =
+      let new_methods =
+        (List.map (fun (x,y,z) ->
+             Parsetree.Otag (x, y, z)) new_methods) in
       { ty
         with ptyp_desc = Ptyp_object(new_methods, closed_flag);
       } in 
@@ -327,12 +332,12 @@ let rec unsafe_mapper : Ast_mapper.mapper =
               end
 
           end             
-        |Pexp_constant (Const_string (s, (Some delim))) 
+        |Pexp_constant (Pconst_string (s, (Some delim))) 
           ->         
           if Ext_string.equal delim Literals.unescaped_js_delimiter then 
             let js_str = Ast_utf8_string.transform loc s in 
             { e with pexp_desc = 
-                       Pexp_constant (Const_string (js_str, Some Literals.escaped_j_delimiter))}
+                       Pexp_constant (Pconst_string (js_str, Some Literals.escaped_j_delimiter))}
           else if Ext_string.equal delim Literals.unescaped_j_delimiter then 
             Ast_utf8_string_interp.transform_interp loc s             
           else e 
@@ -362,7 +367,7 @@ let rec unsafe_mapper : Ast_mapper.mapper =
             | `Exn, pexp_attributes -> 
               Ast_util.convertBsErrorFunction loc self  pexp_attributes cases
           end
-        | Pexp_fun ("", None, pat , body)
+        | Pexp_fun (Nolabel, None, pat , body)
           ->
           begin match Ast_attributes.process_attributes_rev e.pexp_attributes with 
             | `Nothing, _ 
@@ -385,27 +390,27 @@ let rec unsafe_mapper : Ast_mapper.mapper =
                  Pexp_apply (
                    {pexp_desc = 
                       Pexp_ident  {txt = Lident "##"  ; loc} ; _},
-                   [("", obj) ;
-                    ("", {pexp_desc = Pexp_ident {txt = Lident name;_ } ; _} )
+                   [(Nolabel, obj) ;
+                    (Nolabel, {pexp_desc = Pexp_ident {txt = Lident name;_ } ; _} )
                    ]);
                _} ->  (* f##paint 1 2 *)
-              {e with pexp_desc = Ast_util.method_apply loc self obj name args }
+              {e with pexp_desc = Ast_util.method_apply loc self obj {Asttypes.txt = name; loc} args }
             | {pexp_desc = 
                  Pexp_apply (
                    {pexp_desc = 
                       Pexp_ident  {txt = Lident "#@"  ; loc} ; _},
-                   [("", obj) ;
-                    ("", {pexp_desc = Pexp_ident {txt = Lident name;_ } ; _} )
+                   [(Nolabel, obj) ;
+                    (Nolabel, {pexp_desc = Pexp_ident {txt = Lident name;_ } ; _} )
                    ]);
                _} ->  (* f##paint 1 2 *)
-              {e with pexp_desc = Ast_util.property_apply loc self obj name args  }
+              {e with pexp_desc = Ast_util.property_apply loc self obj {Asttypes.txt = name; loc} args  }
 
             | {pexp_desc = 
                  Pexp_ident  {txt = Lident "##" ; loc} ; _} 
               -> 
               begin match args with 
-                | [("", obj) ;
-                   ("", {pexp_desc = Pexp_apply(
+                | [(Nolabel, obj) ;
+                   (Nolabel, {pexp_desc = Pexp_apply(
                         {pexp_desc = Pexp_ident {txt = Lident name;_ } ; _},
                         args
                       ); pexp_attributes = attrs }
@@ -418,14 +423,14 @@ let rec unsafe_mapper : Ast_mapper.mapper =
                      Another corner case: f##(g a b [@bs])
                   *)
                   Ast_attributes.warn_unused_attributes attrs ;  
-                  {e with pexp_desc = Ast_util.method_apply loc self obj name args}
-                | [("", obj) ;
-                   ("", 
+                  {e with pexp_desc = Ast_util.method_apply loc self obj {Asttypes.txt = name; loc} args}
+                | [(Nolabel, obj) ;
+                   (Nolabel, 
                     {pexp_desc = Pexp_ident {txt = Lident name;_ } ; _}
                    )  (* f##paint  *)
                   ] -> 
                   { e with pexp_desc = 
-                             Ast_util.js_property loc (self.expr self obj) name  
+                             Ast_util.js_property loc (self.expr self obj) {Asttypes.txt = name; loc}  
                   }
 
                 | _ -> 
@@ -449,20 +454,20 @@ let rec unsafe_mapper : Ast_mapper.mapper =
                  Pexp_ident {txt = Lident  ("#=" )}
               } -> 
               begin match args with 
-                | ["", 
+                | [Nolabel, 
                    {pexp_desc = 
                       Pexp_apply ({pexp_desc = Pexp_ident {txt = Lident "##"}}, 
-                                  ["", obj; 
-                                   "", {pexp_desc = Pexp_ident {txt = Lident name}}
+                                  [Nolabel, obj; 
+                                   Nolabel, {pexp_desc = Pexp_ident {txt = Lident name}}
                                   ]                                 
                                  )}; 
-                   "", arg
+                   Nolabel, arg
                   ] -> 
                   Exp.constraint_ ~loc
                     { e with
                       pexp_desc =
                         Ast_util.method_apply loc self obj 
-                          (name ^ Literals.setter_suffix) ["", arg ]  }
+                          {Asttypes.txt = (name ^ Literals.setter_suffix); loc} [Nolabel, arg ]  }
                     (Ast_literal.type_unit ~loc ())
                 | _ -> Ast_mapper.default_mapper.expr self e 
               end
@@ -533,7 +538,8 @@ let rec unsafe_mapper : Ast_mapper.mapper =
 
              | Pcty_constr _
              | Pcty_extension _ 
-             | Pcty_arrow _ ->
+             | Pcty_arrow _
+             | Pcty_open _ ->
                Location.raise_errorf ~loc:pcty_loc "invalid or unused attribute `bs`"
                (* {[class x : int -> object 
                     end [@bs]
@@ -546,14 +552,14 @@ let rec unsafe_mapper : Ast_mapper.mapper =
       );
     signature_item =  begin fun (self : Ast_mapper.mapper) (sigi : Parsetree.signature_item) -> 
       match sigi.psig_desc with 
-      | Psig_type (_ :: _ as tdcls) -> 
+      | Psig_type (rec_flag, (_ :: _ as tdcls)) -> 
         begin match Ast_attributes.process_derive_type 
                       (Ext_list.last tdcls).ptype_attributes  with 
         | {bs_deriving = `Has_deriving actions; explict_nonrec}, ptype_attributes
           -> Ast_signature.fuse 
                {sigi with 
                 psig_desc = Psig_type
-                    (
+                    (rec_flag,
                       Ext_list.map_last (fun last tdcl -> 
                           if last then 
                             self.type_declaration self {tdcl with ptype_attributes}
@@ -605,7 +611,7 @@ let rec unsafe_mapper : Ast_mapper.mapper =
     end;
     pat = begin fun self (pat : Parsetree.pattern) -> 
       match pat with 
-      | { ppat_desc = Ppat_constant(Const_string (_, Some "j")); ppat_loc = loc} -> 
+      | { ppat_desc = Ppat_constant(Pconst_string (_, Some "j")); ppat_loc = loc} -> 
         Location.raise_errorf ~loc 
           "Unicode string is not allowed in pattern match"
       | _  -> Ast_mapper.default_mapper.pat self pat
@@ -616,7 +622,7 @@ let rec unsafe_mapper : Ast_mapper.mapper =
         | Pstr_extension ( ({txt = ("bs.raw"| "raw") ; loc}, payload), _attrs) 
           -> 
           Ast_util.handle_raw_structure loc payload
-        | Pstr_type (_ :: _ as tdcls ) (* [ {ptype_attributes} as tdcl ] *)-> 
+        | Pstr_type (rec_flag, (_ :: _ as tdcls)) (* [ {ptype_attributes} as tdcl ] *)-> 
           begin match Ast_attributes.process_derive_type 
                         ((Ext_list.last tdcls).ptype_attributes) with 
           | {bs_deriving = `Has_deriving actions;
@@ -626,7 +632,8 @@ let rec unsafe_mapper : Ast_mapper.mapper =
               {str with 
                pstr_desc =
                  Pstr_type 
-                   (Ext_list.map_last (fun last tdcl -> 
+                   (rec_flag,
+                    Ext_list.map_last (fun last tdcl -> 
                         if last then 
                           self.type_declaration self {tdcl with ptype_attributes}
                         else 

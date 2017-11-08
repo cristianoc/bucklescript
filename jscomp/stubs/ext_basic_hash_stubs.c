@@ -20,21 +20,21 @@
 
 CAMLprim value caml_bs_hash_string (value obj){
 
-  uint32 h = 0;
+  uint32_t h = 0;
   h = caml_hash_mix_string(h,obj);
   FINAL_MIX(h);
   return Val_int(h & 0x3FFFFFFFU);
 }
 
 CAMLprim value caml_bs_hash_int  ( value d){
-  uint32 h = 0; 
+  uint32_t h = 0; 
   h = caml_hash_mix_intnat(h,d);
   FINAL_MIX(h);
   return Val_int(h & 0x3FFFFFFFU);
 }
 
 CAMLprim value caml_bs_hash_string_and_int  (value obj, value d){
-  uint32 h = 0; 
+  uint32_t h = 0; 
   h = caml_hash_mix_string(h,obj);
   h = caml_hash_mix_intnat(h,d);
   FINAL_MIX(h);
@@ -42,7 +42,7 @@ CAMLprim value caml_bs_hash_string_and_int  (value obj, value d){
 }
 
 CAMLprim value caml_bs_hash_string_and_small_int(value obj, value d){
-  uint32 h = 0;
+  uint32_t h = 0;
   h = caml_hash_mix_string(h,obj);
   MIX(h,d);
   FINAL_MIX(h);
@@ -50,7 +50,7 @@ CAMLprim value caml_bs_hash_string_and_small_int(value obj, value d){
 }
 
 CAMLprim value caml_bs_hash_small_int(value d){
-  uint32 h = 0; 
+  uint32_t h = 0; 
   // intnat stamp = Long_val(d); 
   // FIXME: unused value
   MIX(h,d);
@@ -80,7 +80,7 @@ CAMLprim value caml_int_array_blit(
  * which part of our libraries depends on Ident.t
  */
 CAMLprim value caml_bs_hash_stamp_and_name(value d, value obj ){
-  uint32 h = 0;
+  uint32_t h = 0;
   intnat stamp = Long_val(d); 
   if (stamp){
     MIX(h,d);

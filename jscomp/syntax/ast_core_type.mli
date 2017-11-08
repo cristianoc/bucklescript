@@ -42,7 +42,7 @@ type arg_label =
        [x:t] -> "x"
        [?x:t] -> "?x"
 *)
-val label_name : string -> arg_label
+val label_name : Asttypes.arg_label -> arg_label
 
 
 
@@ -58,7 +58,7 @@ val from_labels :
 
 val make_obj :
   loc:Location.t ->
-  (string * Parsetree.attributes * t) list ->
+  Parsetree.object_field list ->
   t
 
 val is_user_option : t -> bool 
@@ -78,6 +78,6 @@ val get_uncurry_arity : t -> [`Arity of int | `Not_function ]
 (** fails when Ptyp_poly *)
 val list_of_arrow : 
   t -> 
-  t *  (Asttypes.label * t * Parsetree.attributes * Location.t) list
+  t *  (Asttypes.arg_label * t * Parsetree.attributes * Location.t) list
 
 val is_arity_one : t -> bool 
