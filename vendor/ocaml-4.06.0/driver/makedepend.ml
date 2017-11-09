@@ -40,6 +40,13 @@ let map_files = ref []
 let module_map = ref StringMap.empty
 let debug = ref false
 
+let cmx_suffix = 
+#if defined BS_OCAMLDEP then
+    ".cmj"
+#else
+    ".cmx"
+#end
+
 (* Fix path to use '/' as directory separator instead of '\'.
    Only under Windows. *)
 
@@ -114,7 +121,7 @@ let find_dependency target_kind modname (byt_deps, opt_deps) =
     let filename = find_file_in_list candidates in
     let basename = Filename.chop_extension filename in
     let cmi_file = basename ^ ".cmi" in
-    let cmx_file = basename ^ ".cmx" in
+    let cmx_file = basename ^ cmx_suffix in
     let ml_exists =
       List.exists (fun ext -> Sys.file_exists (basename ^ ext)) !ml_synonyms in
     let new_opt_dep =
@@ -138,7 +145,7 @@ let find_dependency target_kind modname (byt_deps, opt_deps) =
     let filename = find_file_in_list candidates in
     let basename = Filename.chop_extension filename in
     let cmi_file = basename ^ ".cmi" in
-    let cmx_file = basename ^ ".cmx" in
+    let cmx_file = basename ^ cmx_suffix in
     let bytenames =
       if !all_dependencies then
         match target_kind with
@@ -146,7 +153,7 @@ let find_dependency target_kind modname (byt_deps, opt_deps) =
         | ML  -> [ cmi_file ]
       else
         (* again, make-specific hack *)
-        [basename ^ (if !native_only then ".cmx" else ".cmo")] in
+        [basename ^ (if !native_only then cmx_suffix else ".cmo")] in
     let optnames =
       if !all_dependencies
       then match target_kind with
@@ -310,8 +317,8 @@ let print_ml_dependencies source_file extracted_deps pp_deps =
   let byte_targets = [ basename ^ ".cmo" ] in
   let native_targets =
     if !all_dependencies
-    then [ basename ^ ".cmx"; basename ^ ".o" ]
-    else [ basename ^ ".cmx" ] in
+    then [ basename ^ cmx_suffix; basename ^ ".o" ]
+    else [ basename ^ cmx_suffix ] in
   let shared_targets = [ basename ^ ".cmxs" ] in
   let init_deps = if !all_dependencies then [source_file] else [] in
   let cmi_name = basename ^ ".cmi" in
@@ -325,8 +332,10 @@ let print_ml_dependencies source_file extracted_deps pp_deps =
   let (byt_deps, native_deps) =
     Depend.StringSet.fold (find_dependency ML)
       extracted_deps init_deps in
+#if undefined BS_OCAMLDEP then
   if not !native_only then
     print_dependencies (byte_targets @ extra_targets) (byt_deps @ pp_deps);
+#end
   if not !bytecode_only then
     begin
       print_dependencies (native_targets @ extra_targets)
@@ -360,6 +369,9 @@ let ml_file_dependencies source_file =
       | Ptop_dir _ -> []
     in
     List.flatten (List.map f (Parse.use_file lexbuf))
+#if defined BS_OCAMLDEP then
+    |> !Ppx_entry.rewrite_implementation
+#end
   in
   let (extracted_deps, ()) =
     read_parse_and_extract parse_use_file_as_impl Depend.add_implementation ()
@@ -369,8 +381,14 @@ let ml_file_dependencies source_file =
 
 let mli_file_dependencies source_file =
   let (extracted_deps, ()) =
-    read_parse_and_extract Parse.interface Depend.add_signature ()
-                           Pparse.Signature source_file
+    read_parse_and_extract 
+#if defined BS_OCAMLDEP then
+      (fun lexbuf -> !Ppx_entry.rewrite_signature (Parse.interface lexbuf) )
+#else
+      Parse.interface
+#end
+      Depend.add_signature ()
+      Pparse.Signature source_file
   in
   files := (source_file, MLI, extracted_deps, !Depend.pp_deps) :: !files
 
@@ -543,8 +561,18 @@ let print_version_num () =
 ;;
 
 let main () =
+#if defined BS_OCAMLDEP then
+  native_only := true;
+  Bs_conditional_initial.setup_env ();
+  one_line := true;
+#end
   Clflags.classic := false;
+#if undefined BS_NO_COMPILER_PATCH then 
+  (if not !Clflags.no_implicit_current_dir then
+    add_to_list first_include_dirs Filename.current_dir_name);
+#else
   add_to_list first_include_dirs Filename.current_dir_name;
+#end
   Compenv.readenv ppf Before_args;
   Clflags.reset_arguments (); (* reset arguments from ocamlc/ocamlopt *)
   Clflags.add_arguments __LOC__ [
