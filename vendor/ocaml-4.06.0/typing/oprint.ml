@@ -22,6 +22,8 @@ let cautious f ppf arg =
   try f ppf arg with
     Ellipsis -> fprintf ppf "..."
 
+let out_ident = ref pp_print_string
+
 let print_lident ppf = function
   | "::" -> pp_print_string ppf "(::)"
   | s -> pp_print_string ppf s

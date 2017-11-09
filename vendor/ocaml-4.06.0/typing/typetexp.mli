@@ -113,3 +113,8 @@ val find_class_type:
 
 val unbound_constructor_error: Env.t -> Longident.t Location.loc -> 'a
 val unbound_label_error: Env.t -> Longident.t Location.loc -> 'a
+
+val spellcheck :
+    Format.formatter ->
+    (('a -> 'a list -> 'a list) -> Longident.t option -> 'b -> 'c list -> string list) ->
+    'b -> Longident.t -> unit

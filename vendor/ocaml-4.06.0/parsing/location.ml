@@ -260,6 +260,10 @@ let setup_colors () =
 let print_loc ppf loc =
   setup_colors ();
   let (file, line, startchar) = get_pos_info loc.loc_start in
+#if undefined BS_NO_COMPILER_PATCH then 
+  let startchar = 
+    if Clflags.bs_vscode then startchar + 1 else startchar in 
+#end    
   let endchar = loc.loc_end.pos_cnum - loc.loc_start.pos_cnum + startchar in
   if file = "//toplevel//" then begin
     if highlight_locations ppf [loc] then () else
@@ -286,9 +290,10 @@ let print ppf loc = !printer ppf loc
 let error_prefix = "Error"
 let warning_prefix = "Warning"
 
-let print_error_prefix ppf =
+let print_error_prefix ppf () =
   setup_colors ();
   fprintf ppf "@{<error>%s@}" error_prefix;
+  ()
 ;;
 
 let print_compact ppf loc =
@@ -303,7 +308,8 @@ let print_compact ppf loc =
 ;;
 
 let print_error ppf loc =
-  fprintf ppf "%a%t:" print loc print_error_prefix;
+  print ppf loc;
+  print_error_prefix ppf ()
 ;;
 
 let print_error_cur_file ppf () = print_error ppf (in_file !input_name);;
@@ -317,7 +323,7 @@ let default_warning_printer loc ppf w =
     print ppf loc;
     if is_error
     then
-      fprintf ppf "%t (%s %d): %s@," print_error_prefix
+      fprintf ppf "%t (%s %d): %s@," (fun f -> print_error_prefix f ())
            (String.uncapitalize_ascii warning_prefix) number message
     else fprintf ppf "@{<warning>%s@} %d: %s@," warning_prefix number message;
     List.iter
