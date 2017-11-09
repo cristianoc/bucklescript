@@ -517,7 +517,7 @@ and transl_structure loc fields cc rootpath final_env = function
       (* This debugging event provides information regarding the structure
          items. It is ignored by the OCaml debugger but is used by
          Js_of_ocaml to preserve variable names. *)
-      (if !Clflags.debug && not !Clflags.native_code then
+      (if !Clflags.record_event_when_debug && !Clflags.debug && not !Clflags.native_code then
          Levent(body,
                 {lev_loc = loc;
                  lev_kind = Lev_pseudo;
@@ -573,12 +573,16 @@ and transl_structure loc fields cc rootpath final_env = function
                                                  mb.mb_attributes
           in
           let module_body =
-            Levent (module_body, {
-              lev_loc = mb.mb_loc;
-              lev_kind = Lev_module_definition id;
-              lev_repr = None;
-              lev_env = Env.summary Env.empty;
-            })
+            if !Clflags.record_event_when_debug
+            then
+              Levent (module_body, {
+                lev_loc = mb.mb_loc;
+                lev_kind = Lev_module_definition id;
+                lev_repr = None;
+                lev_env = Env.summary Env.empty;
+              })
+            else
+              module_body
           in
           Llet(pure_module mb.mb_expr, Pgenval, id,
                module_body,
@@ -596,12 +600,15 @@ and transl_structure loc fields cc rootpath final_env = function
                  let module_body =
                    transl_module Tcoerce_none (field_path rootpath id) modl
                  in
-                 Levent (module_body, {
-                   lev_loc = loc;
-                   lev_kind = Lev_module_definition id;
-                   lev_repr = None;
-                   lev_env = Env.summary Env.empty;
-                 }))
+                 if !Clflags.record_event_when_debug
+                 then
+                   Levent (module_body, {
+                     lev_loc = loc;
+                     lev_kind = Lev_module_definition id;
+                     lev_repr = None;
+                     lev_env = Env.summary Env.empty;
+                   })
+                 else module_body)
               bindings
               body
           in
