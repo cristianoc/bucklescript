@@ -95,9 +95,6 @@ let report_error ppf = Typemod.(function
       fprintf ppf
         "@[This expression creates fresh types.@ %s@]"
         "It is not allowed inside applicative functors."
-  | With_need_typeconstr ->
-      fprintf ppf
-        "Only type constructors with identical parameters can be substituted."
   | Not_a_packed_module ty ->
       fprintf ppf
         "This expression is not a packed module. It has type@ %a"
@@ -115,6 +112,28 @@ let report_error ppf = Typemod.(function
       fprintf ppf "Recursive modules require an explicit module type."
   | Apply_generative ->
       fprintf ppf "This is a generative functor. It can only be applied to ()"
+  | With_makes_applicative_functor_ill_typed(lid, path, explanation) ->
+      fprintf ppf
+        "@[<v>\
+           @[This `with' constraint on %a makes the applicative functor @ \
+             type %s ill-typed in the constrained signature:@]@ \
+           %a@]"
+        longident lid (Path.name path) Includemod.report_error explanation
+  | With_changes_module_alias(lid, id, path) ->
+      fprintf ppf
+        "@[<v>\
+           @[This `with' constraint on %a changes %s, which is aliased @ \
+             in the constrained signature (as %s)@].@]"
+        longident lid (Path.name path) (Ident.name id)
+  | With_cannot_remove_constrained_type ->
+      fprintf ppf
+        "@[<v>Destructive substitutions are not supported for constrained @ \
+              types (other than when replacing a type constructor with @ \
+              a type constructor with the same arguments).@]"
+  | Cannot_scrape_alias p ->
+      fprintf ppf
+        "This is an alias for module %a, which is missing"
+        path p
 )
 
 let report_error env ppf err =

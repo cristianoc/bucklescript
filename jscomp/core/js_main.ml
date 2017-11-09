@@ -42,11 +42,11 @@ let ppf = Format.err_formatter
 
 (* Error messages to standard error formatter *)
 let anonymous filename =
-  Compenv.readenv ppf Before_compile; process_file ppf filename;;
+  Compenv.readenv ppf (Before_compile filename); process_file ppf filename;;
 let impl filename =
-  Compenv.readenv ppf Before_compile; process_implementation_file ppf filename;;
+  Compenv.readenv ppf (Before_compile filename); process_implementation_file ppf filename;;
 let intf filename =
-  Compenv.readenv ppf Before_compile; process_interface_file ppf filename;;
+  Compenv.readenv ppf (Before_compile filename); process_interface_file ppf filename;;
 
 let batch_files  = ref []
 let script_dirs = ref []

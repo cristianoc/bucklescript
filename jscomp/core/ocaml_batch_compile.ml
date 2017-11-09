@@ -65,7 +65,11 @@ let print_if ppf flag printer arg =
   arg
 
 let batch_compile ppf search_dirs files main_file =
-  Compenv.readenv ppf Before_compile; 
+  let fname = match main_file with
+      | Bsc_task_main fname
+      | Bsc_task_eval fname -> fname
+      | Bsc_task_none -> "" in
+  Compenv.readenv ppf (Before_compile fname); 
   Compmisc.init_path  false;
   if files <> [] then 
     begin

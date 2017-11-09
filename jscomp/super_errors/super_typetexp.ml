@@ -123,9 +123,6 @@ let report_error env ppf = function
          else "it is not a variable")
   | Multiple_constraints_on_type s ->
       fprintf ppf "Multiple constraints for type %a" longident s
-  | Repeated_method_label s ->
-      fprintf ppf "@[This is the second method `%s' of this object type.@ %s@]"
-        s "Multiple occurences are not allowed."
   | Unbound_value lid -> 
       (* modified *)
       begin
@@ -149,13 +146,12 @@ let report_error env ppf = function
         @]"
         longident lid;
       spellcheck ppf Env.fold_modules env lid
-  | Unbound_constructor lid ->
-      fprintf ppf "Unbound constructor %a" longident lid;
-      Typetexp.spellcheck_simple ppf Env.fold_constructors (fun d -> d.cstr_name)
-        env lid;
-  | Unbound_label lid ->
-      fprintf ppf "Unbound record field %a" longident lid;
-      Typetexp.spellcheck_simple ppf Env.fold_labels (fun d -> d.lbl_name) env lid;
+  | Unbound_constructor _ as foo ->
+      (* forwarded *)
+      Typetexp.report_error env ppf foo
+  | Unbound_label _ as foo ->
+      (* forwarded *)
+      Typetexp.report_error env ppf foo
   | Unbound_class lid ->
       fprintf ppf "Unbound class %a" longident lid;
       spellcheck ppf Env.fold_classs env lid;
@@ -171,6 +167,28 @@ let report_error env ppf = function
       fprintf ppf "Illegal recursive module reference"
   | Access_functor_as_structure lid ->
       fprintf ppf "The module %a is a functor, not a structure" longident lid
+  | Method_mismatch (l, ty, ty') ->
+      wrap_printing_env env (fun ()  ->
+        Printtyp.reset_and_mark_loops_list [ty; ty'];
+        fprintf ppf "@[<hov>Method '%s' has type %a,@ which should be %a@]"
+          l Printtyp.type_expr ty Printtyp.type_expr ty')
+  | Apply_structure_as_functor lid ->
+      fprintf ppf "The module %a is a structure, not a functor" longident lid
+  | Cannot_scrape_alias(lid, p) ->
+      fprintf ppf
+        "The module %a is an alias for module %a, which is missing"
+        longident lid path p
+  | Opened_object nm ->
+      fprintf ppf
+        "Illegal open object type%a"
+        (fun ppf -> function
+             Some p -> fprintf ppf "@ %a" path p
+           | None -> fprintf ppf "") nm
+  | Not_an_object ty ->
+      Printtyp.reset_and_mark_loops ty;
+      fprintf ppf "@[The type %a@ is not an object type@]"
+        Printtyp.type_expr ty
+
 
 (* This will be called in super_main. This is how you'd override the default error printer from the compiler & register new error_of_exn handlers *)
 let setup () =

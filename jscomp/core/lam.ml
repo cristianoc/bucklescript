@@ -73,7 +73,9 @@ type primitive =
   (* Operations on heap blocks *)
   | Pmakeblock of int * tag_info * mutable_flag
   | Pfield of int * field_dbg_info
+  | Pfield_computed
   | Psetfield of int * bool * set_field_dbg_info
+  | Psetfield_computed of bool * set_field_dbg_info
   (* could have field info at least for record *)
   | Pfloatfield of int * field_dbg_info
   | Psetfloatfield of int * set_field_dbg_info
@@ -202,6 +204,7 @@ type primitive =
 
   (* | Pcreate_exception of string  *)
   | Pcreate_extension of string 
+  | Popaque
 
 type apply_status =
   | App_na
@@ -1538,18 +1541,20 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : t =
       | _ -> assert false 
     end
   (* prim ~primitive:(Psetglobal id) ~args loc *)
-  | Pmakeblock (tag,info, mutable_flag) 
-    -> prim ~primitive:(Pmakeblock (tag,info,mutable_flag)) ~args loc
+  | Pmakeblock (tag, info, mutable_flag, shape) (* TODO shape *) 
+    -> prim ~primitive:(Pmakeblock (tag, info, mutable_flag)) ~args loc
   | Pfield (id,info) 
     -> prim ~primitive:(Pfield (id,info)) ~args loc
-
-  | Psetfield (id,b,info)
-    -> prim ~primitive:(Psetfield (id,b,info)) ~args loc
-
+  | Pfield_computed
+    -> prim ~primitive:Pfield_computed ~args loc
+  | Psetfield (id, ip, ia, info) (* TODO ia *)
+    -> prim ~primitive:(Psetfield (id, ip=Pointer, info)) ~args loc
+  | Psetfield_computed (ip, ia, info) (* TODO ia *)
+    -> prim ~primitive:(Psetfield_computed (ip=Pointer, info)) ~args loc
   | Pfloatfield (id,info)
     -> prim ~primitive:(Pfloatfield (id,info)) ~args loc
-  | Psetfloatfield (id,info) 
-    -> prim ~primitive:(Psetfloatfield (id,info)) ~args loc
+  | Psetfloatfield (id, ia, info) (* TODO ia *) 
+    -> prim ~primitive:(Psetfloatfield (id, info)) ~args loc
   | Pduprecord (repr,i) 
     -> prim ~primitive:(Pduprecord(repr,i)) ~args loc
   | Plazyforce -> prim ~primitive:Plazyforce ~args loc
@@ -1576,8 +1581,8 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : t =
   | Paddint -> prim ~primitive:Paddint ~args loc 
   | Psubint -> prim ~primitive:Psubint ~args loc 
   | Pmulint -> prim ~primitive:Pmulint ~args loc 
-  | Pdivint -> prim ~primitive:Pdivint ~args loc 
-  | Pmodint -> prim ~primitive:Pmodint ~args loc 
+  | Pdivint is_safe -> (* TODO is_safe *) prim ~primitive:Pdivint ~args loc 
+  | Pmodint is_safe -> (* TODO is_safe *) prim ~primitive:Pmodint ~args loc 
   | Pandint -> prim ~primitive:Pandint ~args loc 
   | Porint -> prim ~primitive:Porint ~args loc 
   | Pxorint -> prim ~primitive:Pxorint ~args loc 
@@ -1586,8 +1591,6 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : t =
   | Pasrint -> prim ~primitive:Pasrint ~args loc 
   | Pstringlength -> prim ~primitive:Pstringlength ~args loc 
   | Pstringrefu -> prim ~primitive:Pstringrefu ~args loc 
-  | Pstringsetu 
-  | Pstringsets -> assert false
   | Pstringrefs -> prim ~primitive:Pstringrefs ~args loc 
 
   | Pbyteslength -> prim ~primitive:Pbyteslength ~args loc 
@@ -1612,7 +1615,8 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : t =
   | Poffsetint x -> prim ~primitive:(Poffsetint x) ~args loc 
   | Poffsetref x -> prim ~primitive:(Poffsetref x) ~args  loc
   | Pfloatcomp x -> prim ~primitive:(Pfloatcomp x) ~args loc 
-  | Pmakearray x -> prim ~primitive:(Pmakearray x) ~args  loc 
+  | Pmakearray (x, mut) -> (* TODO mut *) prim ~primitive:(Pmakearray x) ~args  loc 
+  | Pduparray (x, mut) -> (* TODO mut *) prim ~primitive:(Pmakearray x) ~args  loc 
   | Parraylength x -> prim ~primitive:(Parraylength x) ~args loc
   | Parrayrefu x -> prim ~primitive:(Parrayrefu x) ~args loc
   | Parraysetu x -> prim ~primitive:(Parraysetu x) ~args loc 
@@ -1624,8 +1628,8 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : t =
   | Paddbint x -> prim ~primitive:(Paddbint x) ~args loc 
   | Psubbint x -> prim ~primitive:(Psubbint x) ~args loc 
   | Pmulbint x -> prim ~primitive:(Pmulbint x) ~args loc 
-  | Pdivbint x -> prim ~primitive:(Pdivbint x) ~args loc 
-  | Pmodbint x -> prim ~primitive:(Pmodbint x) ~args loc 
+  | Pdivbint {size=x; is_safe} -> (* TODO is_safe *) prim ~primitive:(Pdivbint x) ~args loc 
+  | Pmodbint {size=x; is_safe} -> (* TODO is_safe *) prim ~primitive:(Pmodbint x) ~args loc 
   | Pandbint x -> prim ~primitive:(Pandbint x) ~args loc 
   | Porbint x -> prim ~primitive:(Porbint x) ~args loc 
   | Pxorbint x -> prim ~primitive:(Pxorbint x) ~args loc 
@@ -1657,6 +1661,7 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : t =
   | Pbintcomp (a,b) -> prim ~primitive:(Pbintcomp (a,b)) ~args loc 
   | Pbigarrayref (a,b,c,d) -> prim ~primitive:(Pbigarrayref (a,b,c,d)) ~args loc 
   | Pbigarrayset (a,b,c,d) -> prim ~primitive:(Pbigarrayset (a,b,c,d)) ~args loc 
+  | Popaque -> prim ~primitive:Popaque ~args loc
 
 
 
@@ -1787,7 +1792,7 @@ let convert exports lam : _ * _  =
         *)
         begin match prim_name  ,  args with 
           | "caml_set_oo_id" , 
-            [ Lprim (Pmakeblock(tag,( Blk_exception| Blk_extension), _),
+            [ Lprim (Pmakeblock(tag,( Blk_exception| Blk_extension), _, _),
                      Lconst (Const_base(Const_string(name,_))) :: _,
                      loc
                     )] 
@@ -1902,7 +1907,7 @@ let convert exports lam : _ * _  =
         Lvar var       
     | Lconst x -> 
       Lconst (convert_constant x )
-    | Lapply (fn,args,loc) 
+    | Lapply {ap_func=fn; ap_args=args; ap_loc=loc} 
       ->  
       begin match fn with 
         | Lprim (
@@ -2014,12 +2019,12 @@ let convert exports lam : _ * _  =
           apply (convert_aux fn) (Ext_list.map convert_aux args) 
             loc App_na
       end
-    | Lfunction (Tupled,_,_) -> assert false
-    | Lfunction (Curried,  params,body)
+    | Lfunction {kind=Tupled} -> assert false
+    | Lfunction {kind=Curried; params; body}
       ->  function_ 
             ~arity:(List.length params) ~function_kind:Curried ~params 
             ~body:(convert_aux body)
-    | Llet (kind,id,e,body) 
+    | Llet (kind, vkind, id,e,body) (* TODO vkind *) 
       ->
 
       begin match kind, e with 
@@ -2054,12 +2059,14 @@ let convert exports lam : _ * _  =
            TODO: [airty = 0] when arity =0, it can not be escaped user can only
            write  [f x ] instead of [x |> f ]
         *)
-        | Lfunction(kind, [param],Lprim(external_fn,[Lvar inner_arg],inner_loc))
+        | Lfunction {kind; params=[param]; body=Lprim(external_fn,[Lvar inner_arg],inner_loc)}
           when Ident.same param inner_arg 
           -> 
           convert_aux  (Lprim(external_fn,  [x], outer_loc))
 
-        |  Lapply(Lfunction(kind, params,Lprim(external_fn,inner_args,inner_loc)), args, outer_loc ) (* x |> f a *) 
+        |  Lapply {ap_func=Lfunction{kind; params; body=Lprim(external_fn,inner_args,inner_loc)};
+                   ap_args=args;
+                   ap_loc=outer_loc} (* x |> f a *) 
 
           when Ext_list.for_all2_no_exn (fun x y -> match y with Lambda.Lvar y when Ident.same x y  -> true | _ -> false ) params inner_args
                &&            
@@ -2095,7 +2102,7 @@ let convert exports lam : _ * _  =
       -> 
       let args = Ext_list.map convert_aux args in
       lam_prim ~primitive ~args loc 
-    | Lswitch (e,s) -> 
+    | Lswitch (e,s,loc) -> 
       let  e = convert_aux e in 
       begin match s with 
         | {
@@ -2111,7 +2118,7 @@ let convert exports lam : _ * _  =
               prim 
               ~primitive:Paddint
                ~args:[e; Lconst(Const_int i)]
-               Location.none
+               loc
             | None ->
               Lswitch(e,  
                       {sw_failaction = None; 

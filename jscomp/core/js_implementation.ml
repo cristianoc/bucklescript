@@ -49,7 +49,7 @@ let after_parsing_sig ppf sourcefile outputprefix ast  =
       Lam_compile_env.reset () ;
       let initial_env = Compmisc.initial_env () in
       Env.set_unit_name modulename;
-      let tsg = Typemod.type_interface initial_env ast in
+      let tsg = Typemod.type_interface sourcefile initial_env ast in
       if !Clflags.dump_typedtree then fprintf ppf "%a@." Printtyped.interface tsg;
       let sg = tsg.sig_type in
       if !Clflags.print_types then
@@ -60,7 +60,7 @@ let after_parsing_sig ppf sourcefile outputprefix ast  =
       Typecore.force_delayed_checks ();
       Warnings.check_fatal ();
       if not !Clflags.print_types then begin
-        let sg = Env.save_signature sg modulename (outputprefix ^ ".cmi") in
+        let sg = Env.save_signature ~deprecated:None sg modulename (outputprefix ^ ".cmi") in
         Typemod.save_signature modulename tsg outputprefix sourcefile
           initial_env sg ;
       end
@@ -107,6 +107,7 @@ let after_parsing_impl ppf sourcefile outputprefix ast =
         end else begin
           (typedtree, coercion)
           |> Translmod.transl_implementation modulename
+          |> (fun program -> program.code)
           |> print_if ppf Clflags.dump_rawlambda Printlambda.lambda
           |> (fun lambda -> 
               match           

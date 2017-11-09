@@ -90,6 +90,9 @@ let record_rep ppf r =
   match r with
   | Record_regular -> fprintf ppf "regular"
   | Record_float -> fprintf ppf "float"
+  | Record_unboxed b -> fprintf ppf "unboxed"
+  | Record_inlined i -> fprintf ppf "inlined"
+  | Record_extension -> fprintf ppf "extension"
 ;;
 
 let string_of_loc_kind (loc : Lambda.loc_kind) =
@@ -138,9 +141,13 @@ let primitive ppf (prim : Lam.primitive) = match prim with
   | Pmakeblock(tag, _, Immutable) -> fprintf ppf "makeblock %i" tag
   | Pmakeblock(tag, _, Mutable) -> fprintf ppf "makemutable %i" tag
   | Pfield (n,_) -> fprintf ppf "field %i" n
+  | Pfield_computed -> fprintf ppf "field_computed"
   | Psetfield(n, ptr, _) ->
     let instr = if ptr then "setfield_ptr " else "setfield_imm " in
     fprintf ppf "%s%i" instr n
+  | Psetfield_computed(ptr, _) ->
+    let instr = if ptr then "setfield_ptr " else "setfield_imm " in
+    fprintf ppf "%s" instr
   | Pfloatfield (n,_) -> fprintf ppf "floatfield %i" n
   | Psetfloatfield (n,_) -> fprintf ppf "setfloatfield %i" n
   | Pduprecord (rep, size) -> fprintf ppf "duprecord %a %i" record_rep rep size
@@ -215,9 +222,12 @@ let primitive ppf (prim : Lam.primitive) = match prim with
     let const_name = match c with
       | Big_endian -> "big_endian"
       | Word_size -> "word_size"
+      | Int_size -> "int_size"
+      | Max_wosize -> "max_wosize"
       | Ostype_unix -> "ostype_unix"
       | Ostype_win32 -> "ostype_win32"
-      | Ostype_cygwin -> "ostype_cygwin" in
+      | Ostype_cygwin -> "ostype_cygwin"
+      | Backend_type -> "backend_type" in
     fprintf ppf "sys.constant_%s" const_name
   | Pisint -> fprintf ppf "isint"
   | Pisout -> fprintf ppf "isout"
@@ -286,6 +296,7 @@ let primitive ppf (prim : Lam.primitive) = match prim with
     else fprintf ppf "bigarray.array1.set64"
   | Pbswap16 -> fprintf ppf "bswap16"
   | Pbbswap(bi) -> print_boxed_integer "bswap" ppf bi
+  | Popaque -> fprintf ppf "opaque"
 
 
 type print_kind = 

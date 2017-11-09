@@ -149,10 +149,10 @@ let print_out_value ppf tree =
     | Oval_nativeint i -> fprintf ppf "%nin" i
     | Oval_float f -> pp_print_string ppf (float_repres f)
     | Oval_char c -> fprintf ppf "%C" c
-    | Oval_string s ->
-        begin try fprintf ppf "%S" s with
-          Invalid_argument "String.create" -> fprintf ppf "<huge string>"
-        end
+    | Oval_string (_,_, Ostr_bytes) as tree ->
+      pp_print_char ppf '(';
+      print_simple_tree ppf tree;
+      pp_print_char ppf ')';
     | Oval_list tl ->
         fprintf ppf "@[<1>[%a]@]" (print_tree_list print_tree_1 ",") tl
     | Oval_array tl ->
@@ -377,8 +377,8 @@ and print_simple_out_type ppf =
           Ovar_fields fields ->
             print_list print_row_field (fun ppf -> fprintf ppf "@;<1 -2>| ")
               ppf fields
-        | Ovar_name (id, tyl) ->
-            fprintf ppf "@[%a%a@]" print_typargs tyl print_ident id
+        | Ovar_typ typ ->
+           print_simple_out_type ppf typ
       in
       fprintf ppf "%s[%s@[<hv>@[<hv>%a@]%a ]@]" (if non_gen then "_" else "")
         (if closed then if tags = None then " " else "< "
@@ -402,10 +402,8 @@ and print_simple_out_type ppf =
         )
         n tyl;
       fprintf ppf ")@]"
-#if defined BS_NO_COMPILER_PATCH then
   | Otyp_attribute (t, attr) ->
         fprintf ppf "@[<1>(%a [@@%s])@]" print_out_type t attr.oattr_name
-#end
 
 and print_object_fields ppf =
   function
@@ -619,6 +617,8 @@ and print_out_sig_item ppf =
           | Orec_first -> "type"
           | Orec_next  -> "and")
         ppf td
+  | Osig_ellipsis ->
+    fprintf ppf "..."
 #if defined BS_NO_COMPILER_PATCH then
   | Osig_value {oval_name; oval_type; oval_prims; oval_attributes} ->
     let kwd = if oval_prims = [] then "let" else "external" in
@@ -633,10 +633,8 @@ and print_out_sig_item ppf =
         !out_type oval_type pr_prims oval_prims
         (fun ppf -> List.iter (fun a -> fprintf ppf "@ [@@@@%s]" a.oattr_name))
         oval_attributes
-  | Osig_ellipsis ->
-    fprintf ppf "..."
 #else
-  | Osig_value(oval_name, oval_type, oval_prims) ->
+  | Osig_value {oval_name; oval_type; oval_prims} ->
     let kwd = if oval_prims = [] then "let" else "external" in
     let pr_prims ppf =
       function

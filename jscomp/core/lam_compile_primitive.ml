@@ -698,20 +698,27 @@ let translate  loc
         else E.caml_false
       | Word_size -> 
         E.small_int  Sys.word_size
+      | Int_size ->
+        E.small_int Sys.int_size
+      | Max_wosize ->
+        E.small_int Sys.max_array_length
       | Ostype_unix -> 
         if Sys.unix then E.caml_true else E.caml_false
       | Ostype_win32 -> 
         if Sys.win32 then E.caml_true else E.caml_false
       | Ostype_cygwin -> 
         if Sys.cygwin then E.caml_true else E.caml_false
+      | Backend_type ->
+        E.small_int 0 (* Native *)
     end
   (* | Psetglobal _  ->  *)
   (*   assert false (\* already handled *\) *)
   (* assert false *)
   | Pduprecord ((Record_regular 
-                | Record_float ),0)
-  | Pduprecord ((Record_regular 
-                | Record_float ),_) -> 
+                | Record_float
+                | Record_unboxed _
+                | Record_inlined _
+                | Record_extension), _) -> 
     begin match args with 
       | [e] -> Js_of_lam_record.copy e
       | _ -> assert false       
@@ -803,10 +810,14 @@ let translate  loc
   | Pbigstring_set_16 _
   | Pbigstring_set_32 _
   | Pbigstring_set_64 _
+  | Pfield_computed
+  | Psetfield_computed _
+  | Popaque
     -> 
     (*we dont use [throw] here, since [throw] is an statement  *)        
     let s = Lam_print.primitive_to_string prim in    
     Bs_warnings.warn_missing_primitive loc  s;
     E.not_implemented s 
+
 
 

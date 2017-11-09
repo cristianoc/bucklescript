@@ -101,6 +101,7 @@ let rec no_side_effects (lam : Lam.t) : bool =
       | Pglobal_exception _
       | Pmakeblock _  (* whether it's mutable or not *)
       | Pfield _
+      | Pfield_computed
       | Pfloatfield _ 
       | Pduprecord _ 
       (* Boolean operations *)
@@ -159,6 +160,7 @@ let rec no_side_effects (lam : Lam.t) : bool =
       | Pcaml_obj_length
       | Pjs_is_instance_array
       | Pwrap_exn
+      | Popaque
         -> true
       | Pjs_string_of_small_array
       | Pcaml_obj_set_length        
@@ -206,6 +208,7 @@ let rec no_side_effects (lam : Lam.t) : bool =
       | Praise
       | Plazyforce 
       | Psetfield _ 
+      | Psetfield_computed _
       | Psetfloatfield _
       (* | Psetglobal _  *)
         -> false 
@@ -421,14 +424,21 @@ let eq_compile_time_constant ( p : Lam.compile_time_constant) (p1 : Lam.compile_
   match p with 
   | Big_endian -> p1 = Big_endian
   | Word_size -> p1 = Word_size 
+  | Int_size -> p1 = Int_size
+  | Max_wosize -> p1 = Max_wosize
   | Ostype_unix -> p1 = Ostype_unix
   | Ostype_win32 -> p1 = Ostype_win32
   | Ostype_cygwin -> p1 = Ostype_cygwin 
+  | Backend_type -> p1 = Backend_type
 
 let eq_record_representation ( p : Types.record_representation) ( p1 : Types.record_representation) = 
   match p with 
   | Record_float -> p1 = Record_float
   | Record_regular -> p1 = Record_regular
+  | Record_unboxed b -> p1 = Record_unboxed b
+  | Record_inlined i -> p1 = Record_inlined i
+  | Record_extension -> p1 = Record_extension
+
 (* compared two lambdas in case analysis, note that we only compare some small lambdas
     Actually this patten is quite common in GADT, people have to write duplicated code 
     due to the type system restriction
@@ -546,7 +556,9 @@ and eq_primitive ( lhs : Lam.primitive) (rhs : Lam.primitive) =
   | Pcaml_obj_set_length -> rhs = Pcaml_obj_set_length
   | Pccall {prim_name = n0 ;  prim_native_name = nn0} ->  (match rhs with Pccall {prim_name = n1; prim_native_name = nn1} ->    n0 = n1 && nn0 = nn1 | _ -> false )    
   | Pfield (n0, _dbg_info0) ->  (match rhs with Pfield (n1, _dbg_info1) ->  n0 = n1  | _ -> false )    
+  | Pfield_computed -> rhs = Pfield_computed
   | Psetfield(i0, b0, _dbg_info0) -> (match rhs with Psetfield(i1, b1, _dbg_info1) ->  i0 = i1 && b0 = b1 | _ -> false)
+  | Psetfield_computed(b0, _dbg_info0) -> (match rhs with Psetfield_computed(b1, _dbg_info1) ->  b0 = b1 | _ -> false)
   | Pglobal_exception ident -> (match rhs with Pglobal_exception ident2 ->  Ident.same ident ident2 | _ -> false )
   | Pmakeblock (i, _tag_info, mutable_flag) -> (match rhs with Pmakeblock(i1,_,mutable_flag1) ->  i = i1 && mutable_flag = mutable_flag1  | _ -> false)
   | Pfloatfield (i0,_dbg_info) -> (match rhs with Pfloatfield (i1,_) -> i0 = i1   | _ -> false)
@@ -606,6 +618,7 @@ and eq_primitive ( lhs : Lam.primitive) (rhs : Lam.primitive) =
   | Pbigarrayset _ 
   | Praw_js_code_exp _ 
   | Praw_js_code_stmt _ -> false (* TOO lazy, here comparison is only approximation*)
+  | Popaque -> rhs = Popaque
   
 
 

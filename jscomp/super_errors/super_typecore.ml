@@ -45,9 +45,9 @@ let report_error env ppf = function
           fprintf ppf "but on the right-hand side it has type")
   | Multiply_bound_variable name ->
       fprintf ppf "Variable %s is bound several times in this matching" name
-  | Orpat_vars id ->
-      fprintf ppf "Variable %s must occur on both sides of this | pattern"
-        (Ident.name id)
+  | Orpat_vars _ as foo ->
+      (* forwarded *)
+      Typecore.report_error env ppf foo
   | Expr_type_clash trace ->
       (* modified *)
       if Super_reason_react.state_escape_scope trace then
@@ -90,7 +90,7 @@ let report_error env ppf = function
       end
   | Apply_wrong_label (l, ty) ->
       let print_label ppf = function
-        | "" -> fprintf ppf "without label"
+        | Nolabel -> fprintf ppf "without label"
         | l ->
             fprintf ppf "with label %s" (prefixed_label_name l)
       in
@@ -108,17 +108,9 @@ let report_error env ppf = function
         print_labels labels
   | Label_not_mutable lid ->
       fprintf ppf "The record field %a is not mutable" longident lid
-  | Wrong_name (eorp, ty, kind, p, lid) as foo ->
+  | Wrong_name _ as foo ->
       (* forwarded *)
       Typecore.report_error env ppf foo
-      (* reset_and_mark_loops ty;
-      fprintf ppf "@[@[<2>%s type@ %a@]@ "
-        eorp type_expr ty;
-      fprintf ppf "The %s %a does not belong to type %a@]"
-        (if kind = "record" then "field" else "constructor")
-        longident lid (*kind*) path p;
-      if kind = "record" then Label.spellcheck ppf env p lid
-                         else Constructor.spellcheck ppf env p lid *)
   | Name_type_mismatch (kind, lid, tp, tpl) ->
       let name = if kind = "record" then "field" else "constructor" in
       Printtyp.report_ambiguous_type_error ppf env tp tpl
@@ -133,18 +125,18 @@ let report_error env ppf = function
              name kind)
   | Invalid_format msg ->
       fprintf ppf "%s" msg
-  | Undefined_method (ty, me) ->
-      reset_and_mark_loops ty;
-      fprintf ppf
-        "@[<v>@[This expression has type@;<1 2>%a@]@,\
-         It has no method %s@]" type_expr ty me
-  | Undefined_inherited_method me ->
-      fprintf ppf "This expression has no method %s" me
+  | Undefined_method _ as foo ->
+      (* forwarded *)
+      Typecore.report_error env ppf foo
+  | Undefined_inherited_method _ as foo ->
+      (* forwarded *)
+      Typecore.report_error env ppf foo
   | Virtual_class cl ->
       fprintf ppf "Cannot instantiate the virtual class %a"
         longident cl
-  | Unbound_instance_variable v ->
-      fprintf ppf "Unbound instance variable %s" v
+  | Unbound_instance_variable _ as foo ->
+      (* forwarded *)
+      Typecore.report_error env ppf foo
   | Instance_variable_not_mutable (b, v) ->
       if b then
         fprintf ppf "The instance variable %s is not mutable" v
@@ -182,9 +174,9 @@ let report_error env ppf = function
       end
   | Abstract_wrong_label (l, ty) ->
       let label_mark = function
-        | "" -> "but its first argument is not labelled"
-        |  l -> sprintf "but its first argument is labelled %s"
-          (prefixed_label_name l) in
+        | Nolabel -> "but its first argument is not labelled"
+        | l -> sprintf "but its first argument is labelled %s"
+                       (prefixed_label_name l) in
       reset_and_mark_loops ty;
       fprintf ppf "@[<v>@[<2>This function should have type@ %a@]@,%s@]"
       type_expr ty (label_mark l)
@@ -247,6 +239,38 @@ let report_error env ppf = function
   | Exception_pattern_below_toplevel ->
       fprintf ppf
         "@[Exception patterns must be at the top level of a match case.@]"
+  | Inlined_record_escape ->
+      fprintf ppf
+        "@[This form is not allowed as the type of the inlined record could \
+         escape.@]"
+  | Inlined_record_expected ->
+      fprintf ppf
+        "@[This constructor expects an inlined record argument.@]"
+  | Unrefuted_pattern pat ->
+      fprintf ppf
+        "@[%s@ %s@ %a@]"
+        "This match case could not be refuted."
+        "Here is an example of a value that would reach it:"
+        Parmatch.top_pretty pat
+  | Invalid_extension_constructor_payload ->
+      fprintf ppf
+        "Invalid [%%extension_constructor] payload, a constructor is expected."
+  | Not_an_extension_constructor ->
+      fprintf ppf
+        "This constructor is not an extension constructor."
+  | Literal_overflow ty ->
+      fprintf ppf "Integer literal exceeds the range of representable \
+                   integers of type %s" ty
+  | Unknown_literal (n, m) ->
+      fprintf ppf "Unknown modifier '%c' for literal %s%c" m n m
+  | Illegal_letrec_pat ->
+      fprintf ppf
+        "Only variables are allowed as left-hand side of `let rec'"
+  | Illegal_letrec_expr ->
+      fprintf ppf
+        "This kind of expression is not allowed as right-hand side of `let rec'"
+  | Illegal_class_expr ->
+      fprintf ppf "This kind of recursive class expression is not allowed"
 
 let report_error env ppf err =
   Printtyp.wrap_printing_env env (fun () -> report_error env ppf err)
