@@ -296,7 +296,6 @@ let primitive ppf (prim : Lam.primitive) = match prim with
     else fprintf ppf "bigarray.array1.set64"
   | Pbswap16 -> fprintf ppf "bswap16"
   | Pbbswap(bi) -> print_boxed_integer "bswap" ppf bi
-  | Popaque -> fprintf ppf "opaque"
 
 
 type print_kind = 

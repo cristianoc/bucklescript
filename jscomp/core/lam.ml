@@ -204,7 +204,6 @@ type primitive =
 
   (* | Pcreate_exception of string  *)
   | Pcreate_extension of string 
-  | Popaque
 
 type apply_status =
   | App_na
@@ -1661,7 +1660,8 @@ let lam_prim ~primitive:( p : Lambda.primitive) ~args loc : t =
   | Pbintcomp (a,b) -> prim ~primitive:(Pbintcomp (a,b)) ~args loc 
   | Pbigarrayref (a,b,c,d) -> prim ~primitive:(Pbigarrayref (a,b,c,d)) ~args loc 
   | Pbigarrayset (a,b,c,d) -> prim ~primitive:(Pbigarrayset (a,b,c,d)) ~args loc 
-  | Popaque -> prim ~primitive:Popaque ~args loc
+  | Popaque ->
+    begin match args with [x] -> x | _ -> assert false end
 
 
 

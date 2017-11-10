@@ -200,7 +200,6 @@ type primitive =
 
   (* | Pcreate_exception of string  *)
   | Pcreate_extension of string
-  | Popaque 
 
 type switch  =
   { sw_numconsts: int;

@@ -812,7 +812,6 @@ let translate  loc
   | Pbigstring_set_64 _
   | Pfield_computed
   | Psetfield_computed _
-  | Popaque
     -> 
     (*we dont use [throw] here, since [throw] is an statement  *)        
     let s = Lam_print.primitive_to_string prim in    

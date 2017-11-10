@@ -160,7 +160,6 @@ let rec no_side_effects (lam : Lam.t) : bool =
       | Pcaml_obj_length
       | Pjs_is_instance_array
       | Pwrap_exn
-      | Popaque
         -> true
       | Pjs_string_of_small_array
       | Pcaml_obj_set_length        
@@ -618,7 +617,6 @@ and eq_primitive ( lhs : Lam.primitive) (rhs : Lam.primitive) =
   | Pbigarrayset _ 
   | Praw_js_code_exp _ 
   | Praw_js_code_stmt _ -> false (* TOO lazy, here comparison is only approximation*)
-  | Popaque -> rhs = Popaque
   
 
 
