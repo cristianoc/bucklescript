@@ -1,14 +1,17 @@
-(***********************************************************************)
-(*                                                                     *)
-(*                                OCaml                                *)
-(*                                                                     *)
-(*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         *)
-(*                                                                     *)
-(*  Copyright 1996 Institut National de Recherche en Informatique et   *)
-(*  en Automatique.  All rights reserved.  This file is distributed    *)
-(*  under the terms of the Q Public License version 1.0.               *)
-(*                                                                     *)
-(***********************************************************************)
+(**************************************************************************)
+(*                                                                        *)
+(*                                 OCaml                                  *)
+(*                                                                        *)
+(*             Xavier Leroy, projet Cristal, INRIA Rocquencourt           *)
+(*                                                                        *)
+(*   Copyright 1996 Institut National de Recherche en Informatique et     *)
+(*     en Automatique.                                                    *)
+(*                                                                        *)
+(*   All rights reserved.  This file is distributed under the terms of    *)
+(*   the GNU Lesser General Public License version 2.1, with the          *)
+(*   special exception on linking described in the file LICENSE.          *)
+(*                                                                        *)
+(**************************************************************************)
 
 (* System configuration *)
 
@@ -23,14 +26,20 @@ val ccomp_type: string
         (* The "kind" of the C compiler, assembler and linker used: one of
                "cc" (for Unix-style C compilers)
                "msvc" (for Microsoft Visual C++ and MASM) *)
-val bytecomp_c_compiler: string
-        (* The C compiler to use for compiling C files
-           with the bytecode compiler *)
+val c_compiler: string
+        (* The compiler to use for compiling C files *)
+val c_output_obj: string
+        (* Name of the option of the C compiler for specifying the output file *)
+val ocamlc_cflags : string
+        (* The flags ocamlc should pass to the C compiler *)
+val ocamlc_cppflags : string
+        (* The flags ocamlc should pass to the C preprocessor *)
+val ocamlopt_cflags : string
+        (* The flags ocamlopt should pass to the C compiler *)
+val ocamlopt_cppflags : string
+        (* The flags ocamlopt should pass to the C preprocessor *)
 val bytecomp_c_libraries: string
         (* The C libraries to link with custom runtimes *)
-val native_c_compiler: string
-        (* The C compiler to use for compiling C files
-           with the native-code compiler *)
 val native_c_libraries: string
         (* The C libraries to link with native-code programs *)
 val native_pack_linker: string
@@ -87,6 +96,11 @@ val max_young_wosize: int
 val stack_threshold: int
         (* Size in words of safe area at bottom of VM stack,
            see byterun/config.h *)
+val stack_safety_margin: int
+        (* Size in words of the safety margin between the bottom of
+           the stack and the stack pointer. This margin can be used by
+           intermediate computations of some instructions, or the event
+           handler. *)
 
 val architecture: string
         (* Name of processor type for the native-code compiler *)
@@ -120,6 +134,9 @@ val default_executable_name: string
 val systhread_supported : bool
         (* Whether the system thread library is implemented *)
 
+val flexdll_dirs : string list
+        (* Directories needed for the FlexDLL objects *)
+
 val host : string
         (* Whether the compiler is a cross-compiler *)
 
@@ -128,3 +145,40 @@ val target : string
 
 val print_config : out_channel -> unit;;
 
+val profiling : bool
+        (* Whether profiling with gprof is supported on this platform *)
+
+val flambda : bool
+        (* Whether the compiler was configured for flambda *)
+
+val spacetime : bool
+        (* Whether the compiler was configured for Spacetime profiling *)
+val enable_call_counts : bool
+        (* Whether call counts are to be available when Spacetime profiling *)
+val profinfo : bool
+        (* Whether the compiler was configured for profiling *)
+val profinfo_width : int
+        (* How many bits are to be used in values' headers for profiling
+           information *)
+val libunwind_available : bool
+        (* Whether the libunwind library is available on the target *)
+val libunwind_link_flags : string
+        (* Linker flags to use libunwind *)
+
+val safe_string: bool
+        (* Whether the compiler was configured with -force-safe-string;
+           in that case, the -unsafe-string compile-time option is unavailable
+
+           @since 4.05.0 *)
+val default_safe_string: bool
+        (* Whether the compiler was configured to use the -safe-string
+           or -unsafe-string compile-time option by default.
+
+           @since 4.06.0 *)
+val flat_float_array : bool
+        (* Whether the compiler and runtime automagically flatten float
+           arrays *)
+val windows_unicode: bool
+        (* Whether Windows Unicode runtime is enabled *)
+val afl_instrument : bool
+        (* Whether afl-fuzz instrumentation is generated by default *)
