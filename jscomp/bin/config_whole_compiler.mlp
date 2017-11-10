@@ -1,27 +1,21 @@
-(***********************************************************************)
-(*                                                                     *)
-(*                                OCaml                                *)
-(*                                                                     *)
-(*            Xavier Leroy, projet Cristal, INRIA Rocquencourt         *)
-(*                                                                     *)
-(*  Copyright 1996 Institut National de Recherche en Informatique et   *)
-(*  en Automatique.  All rights reserved.  This file is distributed    *)
-(*  under the terms of the Q Public License version 1.0.               *)
-(*                                                                     *)
-(***********************************************************************)
-
-(***********************************************************************)
-(**                                                                   **)
-(**               WARNING WARNING WARNING                             **)
-(**                                                                   **)
-(** When you change this file, you must make the parallel change      **)
-(** in config.mlbuild                                                 **)
-(**                                                                   **)
-(***********************************************************************)
-
+#2 "utils/config.mlp"
+(**************************************************************************)
+(*                                                                        *)
+(*                                 OCaml                                  *)
+(*                                                                        *)
+(*             Xavier Leroy, projet Cristal, INRIA Rocquencourt           *)
+(*                                                                        *)
+(*   Copyright 1996 Institut National de Recherche en Informatique et     *)
+(*     en Automatique.                                                    *)
+(*                                                                        *)
+(*   All rights reserved.  This file is distributed under the terms of    *)
+(*   the GNU Lesser General Public License version 2.1, with the          *)
+(*   special exception on linking described in the file LICENSE.          *)
+(*                                                                        *)
+(**************************************************************************)
 
 (* The main OCaml version string has moved to ../VERSION *)
-let version = "4.02.3+BS"
+let version = "4.06.0+BS"
 
 let standard_library_default = %%LIBDIR%%
 
@@ -36,28 +30,75 @@ let standard_library =
 
 let standard_runtime = "%%BYTERUN%%"
 let ccomp_type = "%%CCOMPTYPE%%"
-let bytecomp_c_compiler = "%%BYTECC%%"
+let c_compiler = "%%CC%%"
+let c_output_obj = "%%OUTPUTOBJ%%"
+let ocamlc_cflags = "%%OCAMLC_CFLAGS%%"
+let ocamlc_cppflags = "%%OCAMLC_CPPFLAGS%%"
+let ocamlopt_cflags = "%%OCAMLOPT_CFLAGS%%"
+let ocamlopt_cppflags = "%%OCAMLOPT_CPPFLAGS%%"
 let bytecomp_c_libraries = "%%BYTECCLIBS%%"
-let native_c_compiler = "%%NATIVECC%%"
+(* bytecomp_c_compiler and native_c_compiler have been supported for a
+   long time and are retained for backwards compatibility.
+   For programs that don't need compatibility with older OCaml releases
+   the recommended approach is to use the constituent variables
+   c_compiler, ocamlc_cflags, ocamlc_cppflags etc., directly.
+*)
+let bytecomp_c_compiler =
+  c_compiler ^ " " ^ ocamlc_cflags ^ " " ^ ocamlc_cppflags
+let native_c_compiler =
+  c_compiler ^ " " ^ ocamlopt_cflags ^ " " ^ ocamlopt_cppflags
 let native_c_libraries = "%%NATIVECCLIBS%%"
 let native_pack_linker = "%%PACKLD%%"
 let ranlib = "%%RANLIBCMD%%"
 let ar = "%%ARCMD%%"
 let cc_profile = "%%CC_PROFILE%%"
-let mkdll = "%%MKDLL%%"
-let mkexe = "%%MKEXE%%"
-let mkmaindll = "%%MKMAINDLL%%"
+let mkdll, mkexe, mkmaindll =
+  (* @@DRA Cygwin - but only if shared libraries are enabled, which we
+     should be able to detect? *)
+  if Sys.os_type = "Win32" then
+    try
+      let flexlink =
+        let flexlink = Sys.getenv "OCAML_FLEXLINK" in
+        let f i =
+          let c = flexlink.[i] in
+          if c = '/' then '\\' else c in
+        (String.init (String.length flexlink) f) ^ " %%FLEXLINK_FLAGS%%" in
+      flexlink,
+      flexlink ^ " -exe%%FLEXLINK_LDFLAGS%%",
+      flexlink ^ " -maindll"
+    with Not_found ->
+      "%%MKDLL%%", "%%MKEXE%%", "%%MKMAINDLL%%"
+  else
+    "%%MKDLL%%", "%%MKEXE%%", "%%MKMAINDLL%%"
+
+let profiling = %%PROFILING%%
+let flambda = %%FLAMBDA%%
+let safe_string = %%FORCE_SAFE_STRING%%
+let default_safe_string = %%DEFAULT_SAFE_STRING%%
+
+let flat_float_array = %%FLAT_FLOAT_ARRAY%%
+
+let afl_instrument = %%AFL_INSTRUMENT%%
 
 let exec_magic_number = "Caml1999X011"
-and cmi_magic_number = "Caml1999I017"
-and cmo_magic_number = "Caml1999O010"
-and cma_magic_number = "Caml1999A011"
-and cmx_magic_number = "Caml1999Y014"
-and cmxa_magic_number = "Caml1999Z013"
-and ast_impl_magic_number = "Caml1999M016"
-and ast_intf_magic_number = "Caml1999N015"
-and cmxs_magic_number = "Caml2007D002"
-and cmt_magic_number = "Caml2012T004"
+and cmi_magic_number = "Caml1999I022"
+and cmo_magic_number = "Caml1999O022"
+and cma_magic_number = "Caml1999A022"
+and cmx_magic_number =
+  if flambda then
+    "Caml1999y022"
+  else
+    "Caml1999Y022"
+and cmxa_magic_number =
+  if flambda then
+    "Caml1999z022"
+  else
+    "Caml1999Z022"
+and ast_impl_magic_number = "Caml1999M022"
+and ast_intf_magic_number = "Caml1999N022"
+and cmxs_magic_number = "Caml1999D022"
+    (* cmxs_magic_number is duplicated in otherlibs/dynlink/natdynlink.ml *)
+and cmt_magic_number = "Caml1999T022"
 
 let load_path = ref ([] : string list)
 
@@ -94,7 +135,9 @@ let default_executable_name =
   | "Win32" | "Cygwin" -> "camlprog.exe"
   | _ -> "camlprog"
 
-let systhread_supported = false (*dontcare*);;
+let systhread_supported = %%SYSTHREAD_SUPPORT%%;;
+
+let flexdll_dirs = [%%FLEXDLL_DIR%%];;
 
 let print_config oc =
   let p name valu = Printf.fprintf oc "%s: %s\n" name valu in

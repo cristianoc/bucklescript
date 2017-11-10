@@ -36,7 +36,23 @@ var map = {
   EXT_DLL: "ext_lib",
   HOST: "host",
   TARGET: "target",
-  SYSTHREAD_SUPPORT: "systhread_supported"
+  SYSTHREAD_SUPPORT: "systhread_supported",
+  FLAMBDA: "flambda",
+  FORCE_SAFE_STRING: "safe_string",
+  DEFAULT_SAFE_STRING: "default_safe_string",
+  AFL_INSTRUMENT: "afl_instrument",
+  CC: "c_compiler",
+  OUTPUTOBJ: "c_output_obj",
+  OCAMLC_CFLAGS: "ocamlc_cflags",
+  OCAMLC_CPPFLAGS: "ocamlc_cppflags",
+  OCAMLOPT_CFLAGS: "ocamlopt_cflags",
+  OCAMLOPT_CPPFLAGS: "ocamlopt_cppflags",
+  FLAT_FLOAT_ARRAY: "flat_float_array",
+  SYSTHREAD_SUPPORT: "systhread_supported",
+  FLEXDLL_DIR: "flexdll_dirs",
+  FLEXLINK_FLAGS: "flexlink_flags",
+  FLEXLINK_LDFLAGS: "flexlink_ldflags",
+  PROFILING: "profiling"
 };
 
 function patch_config(jscomp_dir, config_map, is_windows) {
@@ -107,7 +123,7 @@ function get_config_output(is_windows) {
 function should_patch(config_map) {
   var match = config_map["version"];
   if (match !== undefined) {
-    return +(match.indexOf("4.02.3") >= 0);
+    return +(match.indexOf("4.06.0") >= 0);
   } else {
     return /* false */0;
   }
@@ -140,6 +156,7 @@ if (match$1) {
   if (should_patch(config_map)) {
     patch_config(Path.join(dirname, "..", "jscomp"), config_map, is_windows);
   } else {
+    console.log("Error: version check failed");
     Process.exit(2);
   }
 } else {
