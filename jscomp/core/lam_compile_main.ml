@@ -270,7 +270,13 @@ let compile  ~filename (output_prefix : string) env _sigs
 
     lam
     |> _d "simplify_alias_before"
-    |>  Lam_pass_remove_alias.simplify_alias meta 
+    |>  fun lam -> (
+      (* Compute a fresh meta: see https://github.com/BuckleScript/bucklescript/issues/2243 *)
+      let meta1 = 
+        Lam_pass_collect.count_alias_globals env filename
+        export_idents export_ident_sets lam in
+      let lam = Lam_pass_remove_alias.simplify_alias meta1 lam in
+      lam)
     |> _d "alpha_conversion"
     |>  Lam_pass_alpha_conversion.alpha_conversion meta
     |> _d "before-simplify_lets"
