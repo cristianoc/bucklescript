@@ -166,11 +166,6 @@ let translate  loc
       | _ -> assert false 
     end
   
-  | Pjs_boolean_to_bool -> 
-    begin match args with 
-      | [e] -> E.bool_of_boolean e 
-      | _ -> assert false 
-    end
   | Pjs_typeof -> 
     begin match args with 
       | [e] -> E.typeof e 

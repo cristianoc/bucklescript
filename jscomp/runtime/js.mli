@@ -100,7 +100,7 @@ external undefined : 'a undefined = "" [@@bs.val]
 (** The same as  [empty] {!Js.Undefined} will be compiled as [undefined]*)
 
 
-external to_bool : boolean -> bool = "#boolean_to_bool"
+external to_bool : boolean -> bool = "%identity"
 (** convert Js boolean to OCaml bool *)
 
 external typeof : 'a -> string = "#typeof"

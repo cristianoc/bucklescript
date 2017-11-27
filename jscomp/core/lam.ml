@@ -54,6 +54,7 @@ type meth_kind = Lambda.meth_kind
 
 type constant = 
   | Const_int of int
+  | Const_bool of bool
   | Const_char of char
   | Const_string of string  (* use record later *)
   | Const_unicode of string 
@@ -190,7 +191,6 @@ type primitive =
   | Pis_null
   | Pis_undefined
   | Pis_null_undefined
-  | Pjs_boolean_to_bool
   | Pjs_typeof
   | Pjs_function_length 
 
@@ -1064,7 +1064,6 @@ let apply fn args loc status : t =
                                 Pnull_undefined_to_opt |
                                 Pis_null | 
                                 Pis_null_undefined | 
-                                Pjs_boolean_to_bool | 
                                 Pjs_typeof ) as wrap;
                              args = [Lprim ({primitive; args = inner_args} as primitive_call)]
                             } 
@@ -1117,6 +1116,9 @@ let if_ (a : t) (b : t) c =
       | Const_pointer (x, _)  | (Const_int x)
         ->
         if x <> 0 then b else c
+      | Const_bool (x)
+        ->
+        if x then b else c
       | (Const_char x) ->
         if Char.code x <> 0 then b else c
       | (Const_int32 x) ->
@@ -1455,8 +1457,6 @@ let result_wrap loc (result_type : External_ffi_types.return_wrapper) result  =
   | Return_null_to_opt -> prim ~primitive:Pnull_to_opt ~args:[result] loc 
   | Return_null_undefined_to_opt -> prim ~primitive:Pnull_undefined_to_opt ~args:[result] loc 
   | Return_undefined_to_opt -> prim ~primitive:Pundefined_to_opt ~args:[result] loc 
-  | Return_to_ocaml_bool ->
-    prim ~primitive:Pjs_boolean_to_bool ~args:[result] loc 
   | Return_unset
   | Return_identity -> 
     result 
@@ -1850,7 +1850,6 @@ let convert exports lam : _ * _  =
            we can get rid of it*)
         | "#obj_set_length" -> Pcaml_obj_set_length
         | "#obj_length" -> Pcaml_obj_length
-        | "#boolean_to_bool" -> Pjs_boolean_to_bool
 
         | "#function_length" -> Pjs_function_length
 
@@ -1874,6 +1873,7 @@ let convert exports lam : _ * _  =
   and convert_constant ( const : Lambda.structured_constant) : constant = 
     match const with 
     | Const_base (Const_int i) -> (Const_int i)
+    | Const_base_bool b -> (Const_bool b)
     | Const_base (Const_char i) -> (Const_char i)
     | Const_base (Const_string(i,opt)) ->
       begin match opt with 

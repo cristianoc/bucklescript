@@ -86,7 +86,7 @@ external undefined : 'a undefined = ""
 (* end::predefined_js_values[]*)
 
 (* tag::utility_functions[]*)
-external to_bool : boolean -> bool = "#boolean_to_bool"
+external to_bool : boolean -> bool = "%identity"
 (** convert Js boolean to OCaml bool *)
 external typeof : 'a -> string = "#typeof"
 (** [typeof x] will be compiled as [typeof x] in JS *)

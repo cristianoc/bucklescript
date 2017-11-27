@@ -20,6 +20,7 @@ open Types
 let rec struct_const ppf (cst : Lam.constant) =
   match cst with 
   |  (Const_int n) -> fprintf ppf "%i" n
+  |  (Const_bool b) -> fprintf ppf "%b" b
   |  (Const_char c) -> fprintf ppf "%C" c
   |  (Const_string s) -> fprintf ppf "%S" s
   |  (Const_unicode s) -> fprintf ppf "%S" s
@@ -125,7 +126,6 @@ let primitive ppf (prim : Lam.primitive) = match prim with
   | Lam.Praw_js_code_stmt _ -> fprintf ppf "[raw.stmt]"
   | Pglobal_exception id ->
     fprintf ppf "global exception %a" Ident.print id       
-  | Pjs_boolean_to_bool -> fprintf ppf "[boolean->bool]"
   | Pjs_typeof -> fprintf ppf "[typeof]"
   | Pnull_to_opt -> fprintf ppf "[null->opt]"              
   | Pundefined_to_opt -> fprintf ppf "[undefined->opt]"     
