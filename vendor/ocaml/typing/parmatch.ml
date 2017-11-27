@@ -698,18 +698,18 @@ let complete_tags nconsts nconstrs tags =
   and seen_constr = Array.make nconstrs false in
   List.iter
     (function
-      | Cstr_constant i -> seen_const.(i) <- true
-      | Cstr_block i -> seen_constr.(i) <- true
+      | Cstr_constant (i, _) -> seen_const.(i) <- true
+      | Cstr_block (i, _) -> seen_constr.(i) <- true
       | _  -> assert false)
     tags ;
   let r = ref [] in
   for i = 0 to nconsts-1 do
     if not seen_const.(i) then
-      r := Cstr_constant i :: !r
+      r := Cstr_constant (i, "") :: !r
   done ;
   for i = 0 to nconstrs-1 do
     if not seen_constr.(i) then
-      r := Cstr_block i :: !r
+      r := Cstr_block (i, "") :: !r
   done ;
   !r
 

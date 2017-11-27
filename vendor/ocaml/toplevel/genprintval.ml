@@ -365,8 +365,8 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
                 | {type_kind = Type_variant constr_list} ->
                     let tag =
                       if O.is_block obj
-                      then Cstr_block(O.tag obj)
-                      else Cstr_constant(O.obj obj) in
+                      then Cstr_block(O.tag obj, "")
+                      else Cstr_constant(O.obj obj, "") in
                     let {cd_id;cd_args;cd_res} =
                       Datarepr.find_constr_by_tag tag constr_list in
                     let type_params =
@@ -421,6 +421,33 @@ module Make(O : OBJ)(EVP : EVALPATH with type valu = O.t) = struct
               | Datarepr.Constr_not_found -> (* raised by find_constr_by_tag *)
                   Oval_stuff "<unknown constructor>"
               end
+          | Tvariant row when Clflags.compile_variants_to_strings () ->
+              let row = Btype.row_repr row in
+              if O.is_block obj && O.tag obj = 0 then
+                let tag : string = O.obj (O.field obj 0) in
+                let rec find = function
+                  | (l, f) :: fields ->
+                      if (* Btype.hash_variant *) l = tag then
+                        match Btype.row_field_repr f with
+                        | Rpresent(Some ty) | Reither(_,[ty],_,_) ->
+                            let args =
+                              nest tree_of_val (depth - 1) (O.field obj 1) ty
+                            in
+                              Oval_variant (l, Some args)
+                        | _ -> find fields
+                      else find fields
+                  | [] -> Oval_stuff "<variant>" in
+                find row.row_fields
+              else
+                let tag : string = O.obj obj in
+                let rec find = function
+                  | (l, _) :: fields ->
+                      if (* Btype.hash_variant *) l = tag then
+                        Oval_variant (l, None)
+                      else find fields
+                  | [] -> Oval_stuff "<variant>" in
+                find row.row_fields
+
           | Tvariant row ->
               let row = Btype.row_repr row in
               if O.is_block obj then

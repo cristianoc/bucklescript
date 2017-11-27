@@ -56,9 +56,9 @@ let constructor_descrs ty_res cstrs priv =
         in
         let (tag, descr_rem) =
           match cd_args with
-            [] -> (Cstr_constant idx_const,
+            [] -> (Cstr_constant (idx_const, ""),
                    describe_constructors (idx_const+1) idx_nonconst rem)
-          | _  -> (Cstr_block idx_nonconst,
+          | _  -> (Cstr_block (idx_nonconst, ""),
                    describe_constructors idx_const (idx_nonconst+1) rem) in
         let existentials =
           match cd_res with
@@ -154,11 +154,11 @@ let rec find_constr tag num_const num_nonconst = function
     [] ->
       raise Constr_not_found
   | {cd_args = []; _} as c  :: rem ->
-      if tag = Cstr_constant num_const
+      if tag = Cstr_constant (num_const, "")
       then c
       else find_constr tag (num_const + 1) num_nonconst rem
   | c :: rem ->
-      if tag = Cstr_block num_nonconst
+      if tag = Cstr_block (num_nonconst, "")
       then c
       else find_constr tag num_const (num_nonconst + 1) rem
 

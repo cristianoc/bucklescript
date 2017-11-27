@@ -358,10 +358,14 @@ let transl_prim loc prim args =
         intcomp
     | [arg1; {exp_desc = Texp_variant(_, None)}]
       when simplify_constant_constructor ->
-        intcomp
+        if Clflags.compile_variants_to_strings ()
+        then stringcomp
+        else intcomp
     | [{exp_desc = Texp_variant(_, None)}; exp2]
       when simplify_constant_constructor ->
-        intcomp
+        if Clflags.compile_variants_to_strings ()
+        then stringcomp
+        else intcomp
     | [arg1; arg2] when has_base_type arg1 Predef.path_int
                      || has_base_type arg1 Predef.path_char ->
         intcomp
@@ -757,9 +761,9 @@ and transl_exp0 e =
   | Texp_construct(_, cstr, args) ->
       let ll = transl_list args in
       begin match cstr.cstr_tag with
-        Cstr_constant n ->
+        Cstr_constant (n, _) ->
           Lconst(Const_pointer (n, Lambda.Pt_constructor cstr.cstr_name))
-      | Cstr_block n ->
+      | Cstr_block (n, _) ->
           let tag_info = (Lambda.Blk_constructor (cstr.cstr_name, cstr.cstr_nonconsts)) in
           begin try
             Lconst(Const_block(n,tag_info, List.map extract_constant ll))
@@ -772,6 +776,20 @@ and transl_exp0 e =
           else
             Lprim(Pmakeblock(0, Lambda.default_tag_info, Immutable),
                   transl_path e.exp_env path :: ll, e.exp_loc)
+      end
+  | Texp_variant(l, arg) when Clflags.compile_variants_to_strings () ->
+      let string_const = Const_base (Const_string (l, None)) in
+      begin match arg with
+        None -> Lconst string_const
+      | Some arg ->
+          let lam = transl_exp arg in
+          let tag_info = Lambda.Blk_variant l in
+          try
+            Lconst(Const_block(0, tag_info, [string_const;
+                                   extract_constant lam]))
+          with Not_constant ->
+            Lprim(Pmakeblock(0, tag_info, Immutable),
+                  [Lconst(string_const); lam], e.exp_loc)
       end
   | Texp_variant(l, arg) ->
       let tag = Btype.hash_variant l in
